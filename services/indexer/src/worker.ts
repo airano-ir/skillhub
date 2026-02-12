@@ -1,7 +1,7 @@
 import type { Job } from 'bullmq';
 import { Worker } from 'bullmq';
 import pLimit from 'p-limit';
-import { createDb, type Database, discoveredRepoQueries, awesomeListQueries, addRequestQueries, skillQueries } from '@skillhub/db';
+import { createDb, type Database, discoveredRepoQueries, awesomeListQueries, addRequestQueries, skillQueries, sql } from '@skillhub/db';
 import { GitHubCrawler, createCrawler } from './crawler.js';
 import type { IndexJobData, IndexJobResult } from './queue.js';
 import { setupRecurringJobs } from './queue.js';

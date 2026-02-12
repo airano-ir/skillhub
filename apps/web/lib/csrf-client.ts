@@ -14,6 +14,9 @@ const CSRF_HEADER_NAME = 'x-csrf-token';
 // Store the CSRF token in memory (will be populated on first page load)
 let csrfToken: string | null = null;
 
+// Pending initialization promise (deduplicates concurrent init calls)
+let initPromise: Promise<string | null> | null = null;
+
 /**
  * Set the CSRF token (called when receiving a response with the token)
  */
@@ -44,6 +47,20 @@ export function createHeadersWithCsrf(additionalHeaders?: HeadersInit): Headers 
 }
 
 /**
+ * Ensure the CSRF token is available, initializing if needed.
+ * Deduplicates concurrent calls so only one GET /api/health fires.
+ */
+async function ensureCsrfToken(): Promise<string | null> {
+  if (csrfToken) return csrfToken;
+  if (!initPromise) {
+    initPromise = initializeCsrfToken().finally(() => {
+      initPromise = null;
+    });
+  }
+  return initPromise;
+}
+
+/**
  * Create a fetch wrapper that automatically includes the CSRF token
  * and extracts new tokens from responses
  */
@@ -51,6 +68,9 @@ export async function fetchWithCsrf(
   url: string | URL,
   options?: RequestInit
 ): Promise<Response> {
+  // Wait for token to be ready before sending a protected request
+  await ensureCsrfToken();
+
   const token = getCsrfToken();
 
   const headers = new Headers(options?.headers);

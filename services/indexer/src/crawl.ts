@@ -7,7 +7,7 @@
 import { INSTRUCTION_FILE_PATTERNS, type SourceFormat } from 'skillhub-core';
 import { scheduleFullCrawl, scheduleIncrementalCrawl, getQueueStats, getQueue } from './queue.js';
 import { syncAllSkillsToMeilisearch, checkMeilisearchHealth } from './meilisearch-sync.js';
-import { createDb, skillQueries, categoryQueries, discoveredRepoQueries, awesomeListQueries, addRequestQueries, userQueries } from '@skillhub/db';
+import { createDb, skillQueries, categoryQueries, discoveredRepoQueries, awesomeListQueries, addRequestQueries, userQueries, sql } from '@skillhub/db';
 import { createStrategyOrchestrator, createDeepScanCrawler, createAwesomeListCrawler } from './strategies/index.js';
 import { createCrawler } from './crawler.js';
 import { indexSkill } from './skill-indexer.js';
