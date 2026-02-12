@@ -400,6 +400,20 @@ export const skillQueries = {
   },
 
   /**
+   * Get all skills for sitemap generation (lightweight: id, updatedAt, githubOwner only)
+   */
+  getAllForSitemap: async (db: DB) => {
+    return db
+      .select({
+        id: skills.id,
+        updatedAt: skills.updatedAt,
+        githubOwner: skills.githubOwner,
+      })
+      .from(skills)
+      .where(and(eq(skills.isBlocked, false), eq(skills.sourceFormat, 'skill.md')));
+  },
+
+  /**
    * Get site engagement level for adaptive algorithm
    * Returns: 'cold_start' | 'growth' | 'mature'
    */
