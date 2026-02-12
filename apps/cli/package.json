@@ -1,0 +1,61 @@
+{
+  "name": "skillhub",
+  "version": "0.2.4",
+  "description": "CLI tool for managing AI Agent skills - search, install, and update skills for Claude, Codex, Copilot, and more",
+  "author": "SkillHub Contributors",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/airano-ir/skillhub.git",
+    "directory": "apps/cli"
+  },
+  "homepage": "https://skills.palebluedot.live",
+  "type": "module",
+  "bin": {
+    "skillhub": "./dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsx src/index.ts",
+    "start": "node dist/index.js",
+    "lint": "eslint src/",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest",
+    "test:run": "vitest run"
+  },
+  "dependencies": {
+    "@octokit/rest": "^20.0.2",
+    "chalk": "^5.3.0",
+    "commander": "^11.1.0",
+    "fs-extra": "^11.2.0",
+    "ora": "^8.0.1",
+    "prompts": "^2.4.2"
+  },
+  "devDependencies": {
+    "skillhub-core": "workspace:*",
+    "@types/fs-extra": "^11.0.4",
+    "@types/node": "^20.10.0",
+    "@types/prompts": "^2.4.9",
+    "tsup": "^8.0.1",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.0",
+    "vitest": "^1.2.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "ai",
+    "agent",
+    "skills",
+    "cli",
+    "claude",
+    "codex",
+    "copilot",
+    "cursor",
+    "windsurf"
+  ]
+}

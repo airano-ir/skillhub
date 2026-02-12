@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@skillhub/core": ["packages/core/src"],
+      "@skillhub/db": ["packages/db/src"],
+      "@skillhub/ui": ["packages/ui/src"]
+    }
+  },
+  "include": [],
+  "references": [
+    { "path": "packages/core" },
+    { "path": "packages/db" },
+    { "path": "packages/ui" }
+  ]
+}

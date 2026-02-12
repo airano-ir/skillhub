@@ -1,0 +1,52 @@
+# Dependencies
+node_modules
+.pnpm-store
+# scripts/ uses npm separately, we use pnpm
+scripts/package-lock.json
+
+# Build outputs
+dist
+.next
+.turbo
+*.tsbuildinfo
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Testing
+coverage
+
+# Tauri
+apps/desktop/src-tauri/target
+
+# Database
+*.sqlite
+*.db
+drizzle/*.sql
+*.dump
+data/backups/
+
+# Claude Code
+.claude/skills/
+.claude/settings.local.json
+# Keep agents and council_reasoning.md in version control:
+# !.claude/agents/
+# !.claude/council_reasoning.md
+.claude/settings.json

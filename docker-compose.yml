@@ -1,0 +1,129 @@
+services:
+  # Next.js Web Application
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: skillhub-web
+    ports:
+      - '3000:3000'
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/skillhub
+      REDIS_URL: redis://redis:6379
+      MEILI_URL: http://meilisearch:7700
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:-skillhub-dev-key}
+      GITHUB_TOKEN: ${GITHUB_TOKEN}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3000}
+      # NextAuth (GitHub OAuth)
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET}
+      AUTH_SECRET: ${AUTH_SECRET}
+      AUTH_URL: ${AUTH_URL:-http://localhost:3000}
+      # Email (Resend) - optional for development
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'curl', '-sf', 'http://localhost:3000/api/health']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # GitHub Skills Indexer
+  indexer:
+    build:
+      context: .
+      dockerfile: services/indexer/Dockerfile
+    container_name: skillhub-indexer
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/skillhub
+      REDIS_URL: redis://redis:6379
+      MEILI_URL: http://meilisearch:7700
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:-skillhub-dev-key}
+      GITHUB_TOKEN: ${GITHUB_TOKEN}
+      GITHUB_TOKENS: ${GITHUB_TOKENS}
+      GITHUB_TOKEN_NAMES: ${GITHUB_TOKEN_NAMES}
+      INDEXER_CONCURRENCY: ${INDEXER_CONCURRENCY:-5}
+      INDEXER_MIN_STARS: ${INDEXER_MIN_STARS:-0}
+      # Outreach email sending
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      meilisearch:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # PostgreSQL database
+  db:
+    image: postgres:17-alpine
+    container_name: skillhub-db
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: skillhub
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Redis cache and job queue
+  redis:
+    image: redis:7-alpine
+    container_name: skillhub-redis
+    ports:
+      - '6379:6379'
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Meilisearch for full-text search
+  meilisearch:
+    image: getmeili/meilisearch:v1.6
+    container_name: skillhub-search
+    ports:
+      - '7700:7700'
+    environment:
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:-skillhub-dev-key}
+      MEILI_ENV: ${MEILI_ENV:-development}
+    volumes:
+      - meilisearch_data:/meili_data
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -sf http://localhost:7700/health || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+
+volumes:
+  postgres_data:
+  redis_data:
+  meilisearch_data:
+
+networks:
+  default:
+    name: skillhub-network

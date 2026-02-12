@@ -1,0 +1,28 @@
+# Dependencies - let Docker rebuild these
+node_modules
+**/node_modules
+
+# Build outputs
+.next
+**/.next
+dist
+**/dist
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+
+# Misc
+*.log
+.env.local
+.env.*.local
+.DS_Store
+Thumbs.db
+
+# Turbo
+.turbo
+**/.turbo

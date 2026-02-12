@@ -1,0 +1,31 @@
+{
+  "name": "@skillhub/indexer",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "worker": "tsx src/worker.ts",
+    "crawl": "tsx src/crawl.ts",
+    "lint": "eslint src/",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@octokit/rest": "^20.0.2",
+    "skillhub-core": "workspace:*",
+    "@skillhub/db": "workspace:*",
+    "bullmq": "^5.1.0",
+    "ioredis": "^5.3.2",
+    "meilisearch": "^0.55.0",
+    "p-limit": "^5.0.0",
+    "resend": "^6.9.1",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "tsup": "^8.0.1",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.0"
+  }
+}

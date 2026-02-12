@@ -1,0 +1,50 @@
+{
+  "name": "skillhub-core",
+  "version": "0.1.0",
+  "description": "Core utilities for parsing and validating SKILL.md files",
+  "author": "SkillHub Contributors",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/anthropics/skillhub.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://skills.palebluedot.live",
+  "keywords": [
+    "skill",
+    "ai",
+    "agent",
+    "claude",
+    "codex",
+    "copilot",
+    "parser",
+    "validator"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts",
+    "dev": "tsup src/index.ts --format esm --dts --watch",
+    "lint": "eslint src/",
+    "test": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "gray-matter": "^4.0.3",
+    "yaml": "^2.3.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "tsup": "^8.0.1",
+    "typescript": "^5.3.0",
+    "vitest": "^1.2.0"
+  }
+}

@@ -1,0 +1,908 @@
+{
+  "metadata": {
+    "title": "SkillHub - بازار مهارت‌های AI Agent",
+    "description": "کشف، نصب و مدیریت مهارت‌های AI Agent برای Claude، Codex، Copilot، Cursor و Windsurf"
+  },
+  "common": {
+    "search": "جستجو...",
+    "loading": "در حال بارگذاری...",
+    "error": "خطایی رخ داد",
+    "retry": "تلاش مجدد",
+    "viewAll": "مشاهده همه",
+    "learnMore": "بیشتر بدانید",
+    "getStarted": "شروع کنید",
+    "install": "نصب",
+    "installed": "نصب شده",
+    "verified": "تایید شده",
+    "featured": "ویژه",
+    "trending": "محبوب",
+    "recent": "جدید",
+    "stars": "ستاره",
+    "downloads": "دانلود",
+    "views": "بازدید",
+    "version": "نسخه",
+    "license": "مجوز",
+    "platforms": "پلتفرم‌ها",
+    "security": "امنیت",
+    "quality": "کیفیت"
+  },
+  "nav": {
+    "home": "خانه",
+    "browse": "مرور",
+    "categories": "دسته‌بندی‌ها",
+    "docs": "مستندات",
+    "about": "درباره ما",
+    "github": "گیت‌هاب",
+    "sourceCode": "کد منبع (به زودی)",
+    "sourceCodeShort": "کد منبع",
+    "switchLanguage": "تغییر به انگلیسی"
+  },
+  "home": {
+    "hero": {
+      "tagline": "بازار مهارت‌های AI Agent",
+      "title": "قدرت AI Agent خود را\nچند برابر کنید",
+      "subtitle": "مهارت‌های آماده برای Claude، Codex، Copilot، Cursor و Windsurf. نصب یک‌خطی، کاملاً رایگان و متن‌باز.",
+      "searchPlaceholder": "جستجوی مهارت...",
+      "cta": "مرور مهارت‌ها",
+      "ctaSecondary": "راهنمای شروع"
+    },
+    "stats": {
+      "skills": "مهارت",
+      "downloads": "دانلود",
+      "contributors": "مشارکت‌کننده",
+      "categories": "دسته‌بندی"
+    },
+    "featured": {
+      "title": "مهارت‌های ویژه",
+      "subtitle": "مهارت‌های برگزیده و پرطرفدار جامعه"
+    },
+    "categories": {
+      "title": "دسته‌بندی‌ها",
+      "subtitle": "مهارت‌ها را بر اساس کاربرد پیدا کنید"
+    },
+    "howItWorks": {
+      "title": "چگونه کار می‌کند؟",
+      "step1": {
+        "title": "مهارت را پیدا کنید",
+        "description": "در میان هزاران مهارت جستجو کنید یا بر اساس دسته‌بندی مرور کنید"
+      },
+      "step2": {
+        "title": "با یک خط نصب کنید",
+        "description": "با دستور npx skillhub install مهارت را روی سیستم خود نصب کنید"
+      },
+      "step3": {
+        "title": "استفاده کنید",
+        "description": "مهارت به‌طور خودکار توسط AI Agent شما شناسایی و فعال می‌شود"
+      }
+    }
+  },
+  "browse": {
+    "title": "مرور مهارت‌ها",
+    "subtitle": "کشف و نصب مهارت‌های AI Agent",
+    "filters": {
+      "all": "همه",
+      "platform": "پلتفرم",
+      "category": "دسته‌بندی",
+      "allCategories": "همه دسته‌بندی‌ها",
+      "sort": "مرتب‌سازی",
+      "sortOptions": {
+        "lastDownloaded": "اخیراً دانلود شده",
+        "stars": "بیشترین ستاره",
+        "downloads": "بیشترین دانلود",
+        "recent": "جدید‌ترین",
+        "rating": "بالاترین امتیاز"
+      },
+      "minStars": "حداقل ستاره",
+      "minSecurity": "حداقل امتیاز امنیتی",
+      "viewFeatured": "مشاهده مهارت‌های ویژه",
+      "format": "فرمت",
+      "allFormats": "همه فرمت‌ها",
+      "agentSkills": "مهارت‌های عامل (SKILL.md)"
+    },
+    "results": "{count} مهارت یافت شد",
+    "resultsRange": "نمایش {start}-{end} از {total} مهارت",
+    "noResults": "مهارتی یافت نشد",
+    "noResultsWithQuery": "نتیجه‌ای برای «{query}» یافت نشد",
+    "noResultsHint": "فیلترها را تغییر دهید یا عبارت دیگری جستجو کنید",
+    "searching": "در حال جستجو...",
+    "activeFilters": {
+      "search": "جستجو",
+      "category": "دسته‌بندی",
+      "sortBy": "مرتب‌سازی",
+      "clearAll": "پاک کردن همه"
+    },
+    "emptyState": {
+      "tryDifferent": "عبارت دیگری جستجو کنید یا فیلترها را تغییر دهید",
+      "clearFilters": "پاک کردن فیلترها",
+      "browseAll": "مرور مهارت‌های ویژه"
+    },
+    "pagination": {
+      "previous": "قبلی",
+      "next": "بعدی",
+      "page": "صفحه",
+      "of": "از"
+    }
+  },
+  "skill": {
+    "install": {
+      "title": "نصب مهارت",
+      "cli": "نصب با CLI",
+      "cliGlobal": "نصب سراسری (سطح کاربر):",
+      "cliProject": "نصب در پروژه فعلی:",
+      "browser": "نصب از مرورگر",
+      "manual": "نصب دستی",
+      "selectFolder": "انتخاب پوشه و نصب",
+      "suggestedPath": "مسیر پیشنهادی",
+      "folderNotePrefix": "یک پوشه با نام «",
+      "folderNoteSuffix": "» در مسیر انتخاب‌شده ایجاد می‌شود",
+      "copied": "کپی شد!",
+      "downloadZip": "دانلود ZIP",
+      "copyCommand": "کپی دستور",
+      "downloading": "در حال دانلود...",
+      "installing": "در حال نصب...",
+      "installed": "نصب شد!",
+      "downloadFailed": "دانلود ناموفق. دوباره تلاش کنید.",
+      "browserNotSupported": "مرورگر شما از دسترسی مستقیم به پوشه پشتیبانی نمی‌کند.",
+      "rateLimitError": "محدودیت API گیت‌هاب. لطفاً چند دقیقه دیگر تلاش کنید.",
+      "timeoutError": "زمان درخواست به پایان رسید. ممکن است مهارت فایل‌های زیادی داشته باشد.",
+      "notFoundError": "فایل‌های مهارت یافت نشد.",
+      "noFilesError": "هیچ فایلی در مهارت وجود ندارد.",
+      "disclaimer": "مهارت‌ها کدهای شخص ثالث از مخازن عمومی GitHub هستند. SkillHub الگوهای مخرب شناخته‌شده را اسکن می‌کند اما نمی‌تواند امنیت را تضمین کند. قبل از نصب، کد منبع را بررسی کنید."
+    },
+    "share": {
+      "button": "اشتراک‌گذاری",
+      "copied": "لینک کپی شد!",
+      "copyLink": "کپی لینک"
+    },
+    "tabs": {
+      "readme": "توضیحات",
+      "files": "فایل‌ها",
+      "reviews": "نظرات",
+      "versions": "نسخه‌ها"
+    },
+    "security": {
+      "score": "امتیاز امنیتی",
+      "status": "وضعیت امنیتی",
+      "pass": "تایید شده",
+      "warning": "هشدار",
+      "fail": "رد شده",
+      "excellent": "عالی",
+      "good": "خوب",
+      "fair": "متوسط",
+      "poor": "ضعیف"
+    },
+    "meta": {
+      "author": "نویسنده",
+      "repository": "مخزن",
+      "homepage": "وب‌سایت",
+      "lastUpdate": "آخرین به‌روزرسانی",
+      "createdAt": "تاریخ ایجاد"
+    }
+  },
+  "footer": {
+    "description": "بازار متن‌باز مهارت‌های AI Agent",
+    "links": {
+      "product": "محصول",
+      "resources": "منابع",
+      "company": "شرکت",
+      "legal": "قانونی",
+      "browseSkills": "مرور مهارت‌ها",
+      "categories": "دسته‌بندی‌ها",
+      "featured": "مهارت‌های ویژه",
+      "newSkills": "جدید‌ترین‌ها",
+      "documentation": "مستندات",
+      "gettingStarted": "راهنمای شروع",
+      "apiReference": "API",
+      "cliTool": "CLI",
+      "about": "درباره ما",
+      "airano": "آیرانو",
+      "paleBlueDot": "نقطه آبی کم‌رنگ",
+      "support": "حمایت",
+      "privacyPolicy": "حریم خصوصی",
+      "termsOfService": "شرایط استفاده",
+      "attribution": "تقدیر و تشکر",
+      "manageSkills": "مدیریت مهارت‌ها"
+    },
+    "sourceCode": "کد منبع (به زودی)",
+    "copyright": "© {year} SkillHub. کد متن‌باز تحت مجوز MIT."
+  },
+  "about": {
+    "title": "درباره SkillHub",
+    "subtitle": "بازار متن‌باز مهارت‌های AI Agent",
+    "mission": {
+      "title": "ماموریت ما",
+      "description": "SkillHub بزرگ‌ترین اکوسیستم متن‌باز برای مهارت‌های AI Agent را می‌سازد. ما به دموکراتیک کردن دسترسی به قابلیت‌های AI از طریق یک بازار جامعه‌محور باور داریم."
+    },
+    "features": {
+      "title": "چرا SkillHub؟",
+      "openSource": "۱۰۰٪ متن‌باز",
+      "openSourceDesc": "تحت مجوز MIT، قابل میزبانی شخصی و جامعه‌محور",
+      "multiPlatform": "چند پلتفرمه",
+      "multiPlatformDesc": "با Claude، OpenAI Codex، GitHub Copilot و سایر پلتفرم‌ها کار می‌کند",
+      "secure": "امنیت در اولویت",
+      "secureDesc": "هر مهارت از نظر آسیب‌پذیری‌های امنیتی اسکن می‌شود"
+    }
+  },
+  "contact": {
+    "title": "تماس با ما",
+    "subtitle": "با تیم SkillHub در ارتباط باشید",
+    "github": "ثبت Issue",
+    "githubDesc": "برای باگ‌ها، درخواست ویژگی‌ها یا مشارکت",
+    "email": "ایمیل",
+    "emailDesc": "برای سوالات تجاری",
+    "discord": "عضویت در Discord",
+    "discordDesc": "گفتگو با جامعه"
+  },
+  "support": {
+    "title": "حمایت از SkillHub",
+    "subtitle": "به ما کمک کنید بهترین بازار مهارت‌های AI را بسازیم",
+    "email": "تماس با ما",
+    "emailDesc": "باگ پیدا کردید یا بازخوردی دارید؟ ایمیل بزنید.",
+    "sendEmail": "ارسال ایمیل",
+    "donate": "کمک مالی کریپتو",
+    "donateDesc": "با ارز دیجیتال از توسعه حمایت کنید",
+    "donateNow": "کمک کنید",
+    "sponsor": "اسپانسر شوید",
+    "sponsorDesc": "نام شما در صفحه اسپانسرها قرار می‌گیرد",
+    "becomeSponsor": "اسپانسر در GitHub",
+    "acceptedCrypto": "بیش از ۱۰۰ ارز دیجیتال پذیرفته می‌شود",
+    "whyCryptoTitle": "چرا فقط کریپتو؟",
+    "whyCryptoDesc": "درگاه‌های پرداخت سنتی (PayPal، Stripe، GitHub Sponsors، Patreon) در همه مناطق در دسترس نیستند. ارز دیجیتال به همه اجازه می‌دهد از هر جای دنیا از پروژه‌های متن‌باز حمایت کنند.",
+    "popularCoins": "گزینه‌های محبوب",
+    "andMoreCrypto": "+ ۱۰۰ رمزارز دیگر"
+  },
+  "docs": {
+    "title": "مستندات",
+    "subtitle": "نحوه استفاده از SkillHub را بیاموزید",
+    "gettingStarted": {
+      "title": "شروع کار",
+      "description": "راهنمای سریع برای نصب و استفاده از مهارت‌ها"
+    },
+    "cli": {
+      "title": "مرجع CLI",
+      "description": "مستندات ابزار خط فرمان"
+    },
+    "api": {
+      "title": "مرجع API",
+      "description": "مستندات API برای توسعه‌دهندگان",
+      "baseUrl": "آدرس پایه",
+      "authSection": {
+        "title": "احراز هویت",
+        "description": "اکثر endpointها عمومی هستند و نیازی به احراز هویت ندارند. endpointهایی که داده کاربر را تغییر می‌دهند نیاز به احراز هویت GitHub OAuth دارند.",
+        "howTo": "برای ایجاد نشست در skills.palebluedot.live وارد شوید. endpointهای احراز هویت‌شده در صورت نبود نشست معتبر خطای 401 برمی‌گردانند."
+      },
+      "rateLimitSection": {
+        "title": "محدودیت نرخ",
+        "description": "تمام endpointها با الگوریتم پنجره لغزان محدود شده‌اند. هدرهای محدودیت نرخ در پاسخ‌ها درج می‌شوند.",
+        "tier": "سطح",
+        "limit": "محدودیت",
+        "use": "کاربرد",
+        "anonymous": "ناشناس",
+        "anonymousUse": "endpointهای خواندنی عمومی",
+        "search": "جستجو",
+        "searchUse": "جستجو و دریافت فایل",
+        "authenticated": "احراز هویت‌شده",
+        "authenticatedUse": "عملیات کاربر (وارد شده)",
+        "headersTitle": "هدرهای پاسخ",
+        "headerLimit": "حداکثر درخواست در هر پنجره",
+        "headerRemaining": "درخواست‌های باقی‌مانده در پنجره فعلی",
+        "headerReset": "برچسب زمانی Unix برای بازنشانی پنجره"
+      },
+      "errorSection": {
+        "title": "پاسخ‌های خطا",
+        "description": "تمام خطاها از فرمت JSON یکسان پیروی می‌کنند.",
+        "commonCodes": "کدهای وضعیت رایج",
+        "code400": "درخواست نامعتبر — پارامترهای گم‌شده یا نادرست",
+        "code401": "غیرمجاز — احراز هویت لازم است",
+        "code404": "یافت نشد — منبع وجود ندارد",
+        "code429": "درخواست بیش از حد — محدودیت نرخ",
+        "code500": "خطای داخلی سرور"
+      },
+      "sections": {
+        "skills": {
+          "title": "مهارت‌ها",
+          "description": "جستجو، مرور و دریافت اطلاعات مهارت‌ها"
+        },
+        "skillFiles": {
+          "title": "فایل‌های مهارت",
+          "description": "دریافت محتوای فایل و دانلود به صورت ZIP"
+        },
+        "userActions": {
+          "title": "عملیات کاربر",
+          "description": "امتیازدهی، علاقه‌مندی‌ها و مدیریت مهارت‌ها"
+        },
+        "discovery": {
+          "title": "کشف و فراداده",
+          "description": "دسته‌بندی‌ها، آمار و سلامت سیستم"
+        },
+        "newsletter": {
+          "title": "خبرنامه",
+          "description": "عضویت و لغو عضویت خبرنامه"
+        }
+      },
+      "labels": {
+        "parameters": "پارامترهای کوئری",
+        "requestBody": "بدنه درخواست",
+        "required": "الزامی",
+        "optional": "اختیاری",
+        "default": "پیش‌فرض",
+        "responseExample": "نمونه پاسخ",
+        "rateLimit": "محدودیت نرخ",
+        "cache": "کش",
+        "authRequired": "احراز هویت",
+        "notes": "توضیح"
+      },
+      "endpoints": {
+        "searchSkills": "جستجوی مهارت‌ها با جستجوی متنی، فیلتر و صفحه‌بندی",
+        "getSkill": "دریافت اطلاعات کامل یک مهارت",
+        "featuredSkills": "دریافت مهارت‌های برگزیده و محبوب",
+        "recentSkills": "دریافت مهارت‌های اخیراً اضافه یا به‌روزشده",
+        "trackInstall": "ثبت نصب یک مهارت",
+        "addRequest": "درخواست افزودن مهارت جدید به فهرست",
+        "removalRequest": "درخواست حذف مهارتی که مالک آن هستید",
+        "getSkillFiles": "دریافت تمام فایل‌های پوشه مهارت با محتوا",
+        "downloadZip": "دانلود فایل‌های مهارت به صورت آرشیو ZIP",
+        "getRatings": "دریافت امتیازها و نظرات یک مهارت",
+        "createRating": "ایجاد یا به‌روزرسانی امتیاز شما برای یک مهارت",
+        "getMyRating": "دریافت امتیاز خودتان برای یک مهارت",
+        "getFavorites": "دریافت لیست مهارت‌های مورد علاقه شما",
+        "addFavorite": "افزودن مهارت به علاقه‌مندی‌ها",
+        "removeFavorite": "حذف مهارت از علاقه‌مندی‌ها",
+        "checkFavorites": "بررسی وضعیت علاقه‌مندی مهارت‌ها",
+        "getCategories": "دریافت تمام دسته‌بندی‌ها با تعداد مهارت",
+        "getStats": "دریافت آمار کلی بازار",
+        "healthCheck": "بررسی سلامت API و سرویس‌ها",
+        "getAttribution": "دریافت آمار انتساب و منابع داده",
+        "subscribe": "عضویت ایمیل در خبرنامه",
+        "unsubscribe": "لغو عضویت ایمیل از خبرنامه"
+      },
+      "params": {
+        "q": "عبارت جستجوی متنی",
+        "category": "فیلتر بر اساس شناسه دسته‌بندی",
+        "platform": "فیلتر بر اساس پلتفرم",
+        "format": "فیلتر بر اساس فرمت منبع",
+        "verified": "فقط مهارت‌های تایید شده",
+        "minStars": "حداقل ستاره GitHub",
+        "sort": "ترتیب مرتب‌سازی",
+        "page": "شماره صفحه",
+        "limit": "تعداد نتایج در صفحه (حداکثر ۱۰۰)",
+        "skillId": "شناسه کامل مهارت (مثلاً owner/repo/skill-name)",
+        "id": "شناسه مهارت",
+        "rating": "مقدار امتیاز (۱ تا ۵)",
+        "review": "متن نظر اختیاری",
+        "skillIds": "آرایه شناسه مهارت‌ها",
+        "email": "آدرس ایمیل",
+        "source": "منبع عضویت",
+        "locale": "زبان (en یا fa)",
+        "repositoryUrl": "آدرس مخزن عمومی GitHub",
+        "reason": "دلیل درخواست",
+        "platformZip": "پلتفرم هدف برای تبدیل فایل",
+        "limitNum": "تعداد آیتم‌ها",
+        "offset": "تعداد آیتم‌های رد شده",
+        "method": "روش نصب",
+        "owner": "مالک مخزن GitHub",
+        "repo": "نام مخزن GitHub"
+      },
+      "notes": {
+        "searchFallback": "از Meilisearch استفاده می‌کند و در صورت عدم دسترسی به PostgreSQL برمی‌گردد",
+        "viewCount": "تعداد بازدید را افزایش می‌دهد (تکرار‌زدایی بر اساس IP در هر ساعت)",
+        "installDedup": "تعداد دانلود تکرار‌زدایی شده بر اساس IP در هر ۵ دقیقه",
+        "zipTransform": "فایل‌ها برای فرمت پلتفرم هدف تبدیل می‌شوند (claude, codex, cursor, windsurf, copilot)",
+        "cacheInDB": "فایل‌ها در دیتابیس کش شده و در درخواست‌های بعدی از کش ارائه می‌شوند",
+        "alwaysSuccess": "همیشه موفقیت برمی‌گرداند تا از کشف آدرس ایمیل جلوگیری شود"
+      }
+    },
+    "content": {
+      "installation": "نصب",
+      "installCli": "CLI را به صورت سراسری نصب کنید:",
+      "usage": "استفاده",
+      "searchSkills": "جستجوی مهارت‌ها:",
+      "installSkill": "نصب یک مهارت:",
+      "listInstalled": "لیست مهارت‌های نصب شده:",
+      "webInstallTitle": "نصب از وب‌سایت",
+      "webInstallDesc": "همچنین می‌توانید مهارت‌ها را مستقیماً از وب‌سایت SkillHub نصب کنید:",
+      "webInstallStep1": "۱. مهارت مورد نظر را در صفحه مرور یا جستجو پیدا کنید",
+      "webInstallStep2": "۲. در صفحه مهارت، از بخش «نصب مهارت» در نوار کناری استفاده کنید",
+      "webInstallStep3": "۳. روش خود را انتخاب کنید:",
+      "webInstallMethodFolder": "انتخاب پوشه و نصب — یک پوشه در کامپیوتر شما انتخاب کنید و فایل‌های مهارت مستقیماً ذخیره شوند",
+      "webInstallMethodZip": "دانلود ZIP — فایل‌های مهارت به صورت آرشیو ZIP دانلود می‌شوند تا دستی استخراج کنید",
+      "commands": "دستورات موجود",
+      "examples": "مثال‌ها",
+      "discoveryTitle": "کشف خودکار مهارت‌ها",
+      "discoveryIntro": "یک پرامپت کشف به فایل دستورالعمل پروژه‌تان اضافه کنید تا عامل هوش مصنوعی شما هنگام مواجهه با کارهای ناآشنا، مهارت‌ها را از SkillHub جستجو، نصب و استفاده کند.",
+      "discoveryModesTitle": "۳ حالت کشف",
+      "modeStandard": "استاندارد",
+      "modeStandardDesc": "برای کارهای تخصصی یا پیچیده جستجو می‌کند. متعادل و بهینه — برای اکثر پروژه‌ها پیشنهاد می‌شود.",
+      "modeCompact": "فشرده",
+      "modeCompactDesc": "بلوک دستورالعمل حداقلی. بهینه برای فایل‌های CLAUDE.md کوچک.",
+      "modeOneShot": "پرامپت یک‌باره",
+      "modeOneShotDesc": "مستقیماً در مکالمه پیست کنید. نیازی به تغییر فایل نیست.",
+      "modeStandardLatency": "+۲ تا ۵ ثانیه/کار",
+      "modeCompactLatency": "~۰ ثانیه (بر اساس درخواست)",
+      "modeOneShotLatency": "متغیر",
+      "modeStandardQuality": "بالا",
+      "modeCompactQuality": "خوب",
+      "modeOneShotQuality": "متوسط",
+      "modeStandardBestFor": "اکثر پروژه‌ها (پیشنهادی)",
+      "modeCompactBestFor": "پروژه‌های کوچک، تنظیمات بهینه‌توکن",
+      "modeOneShotBestFor": "مکالمات سریع بدون CLAUDE.md",
+      "latency": "تأخیر",
+      "qualityBoost": "کیفیت",
+      "bestFor": "مناسب برای",
+      "recommended": "پیشنهادی",
+      "copyPrompt": "کپی",
+      "copied": "کپی شد!",
+      "selectMode": "یک حالت را انتخاب کنید تا پرامپت راه‌اندازی آن را ببینید",
+      "addToFile": "این بلوک را به CLAUDE.md، AGENTS.md یا فایل دستورالعمل پلتفرم خود اضافه کنید:",
+      "discoverySetup": "راه‌اندازی: به فایل دستورالعمل اضافه کنید",
+      "discoverySetupDesc": "این بلوک را به CLAUDE.md، AGENTS.md یا فایل دستورالعمل پلتفرم خود اضافه کنید:",
+      "crossPlatformTitle": "پشتیبانی چندپلتفرمی",
+      "crossPlatformDesc": "SkillHub با تمام عامل‌های کدنویسی هوش مصنوعی کار می‌کند:",
+      "platformClaude": "Claude Code — CLAUDE.md",
+      "platformCodex": "OpenAI Codex — AGENTS.md",
+      "platformCopilot": "GitHub Copilot — .github/copilot-instructions.md",
+      "platformCursor": "Cursor — .cursorrules",
+      "platformWindsurf": "Windsurf — پیکربندی Windsurf",
+      "fullDocsLink": "مستندات کامل کشف را برای پرامپت‌های دقیق، استراتژی‌های جستجو و پیکربندی پیشرفته ببینید.",
+      "cmdInstallDesc": "نصب مهارت (--platform, --project, --force, --no-api)",
+      "cmdSearchDesc": "جستجوی مهارت‌ها (--platform, --limit, --page, --sort stars|downloads|rating|recent)",
+      "cmdListDesc": "لیست مهارت‌های نصب‌شده (--platform, --project, --all)",
+      "cmdUpdateDesc": "به‌روزرسانی مهارت یا استفاده از --all برای به‌روزرسانی همه",
+      "cmdUninstallDesc": "حذف مهارت نصب‌شده (--platform, --project)",
+      "cmdConfigDesc": "مدیریت تنظیمات CLI (--set, --get, --list)",
+      "exInstallGlobal": "نصب سراسری:",
+      "exInstallProject": "نصب در پروژه فعلی:",
+      "exSearch": "جستجوی مهارت‌ها:",
+      "exSearchSort": "جستجو بر اساس ستاره‌ها:",
+      "exUpdateAll": "به‌روزرسانی همه مهارت‌ها:",
+      "platformsTitle": "پلتفرم‌های پشتیبانی‌شده",
+      "platformsDesc": "CLI SkillHub از ۵ پلتفرم کدنویسی هوش مصنوعی پشتیبانی می‌کند:",
+      "platformClaudePath": "~/.claude/skills/",
+      "platformCodexPath": "~/.codex/skills/",
+      "platformCopilotPath": ".github/instructions/",
+      "platformCursorPath": ".cursor/rules/",
+      "platformWindsurfPath": ".windsurf/rules/",
+      "configTitle": "تنظیمات",
+      "configDesc": "تنظیمات در ~/.skillhub/config.json ذخیره می‌شوند",
+      "configDefaultPlatform": "پلتفرم پیش‌فرض برای نصب",
+      "configApiUrl": "آدرس API SkillHub",
+      "configGithubToken": "توکن GitHub برای افزایش محدودیت API"
+    }
+  },
+  "categories": {
+    "title": "دسته‌بندی‌ها",
+    "subtitle": "مهارت‌ها را بر اساس دسته‌بندی مرور کنید",
+    "skillCount": "مهارت",
+    "names": {
+      "ai-llm": "هوش مصنوعی و LLM",
+      "git-version-control": "گیت و کنترل نسخه",
+      "data-database": "داده و پایگاه داده",
+      "backend-apis": "بک‌اند و API",
+      "frontend-ui": "فرانت‌اند و UI",
+      "agents-orchestration": "عامل‌ها و هماهنگ‌سازی",
+      "testing-qa": "تست و QA",
+      "devops-cloud": "DevOps و ابر",
+      "programming-languages": "زبان‌های برنامه‌نویسی",
+      "documents-files": "اسناد و فایل‌ها",
+      "security-auth": "امنیت و احراز هویت",
+      "mcp-skills": "MCP و مهارت‌ها",
+      "prompts-instructions": "پرامپت‌ها و دستورالعمل‌ها",
+      "content-writing": "محتوا و نویسندگی",
+      "mobile-development": "توسعه موبایل",
+      "productivity-notes": "بهره‌وری و یادداشت",
+      "smart-home-iot": "خانه هوشمند و IoT",
+      "multimedia-audio-video": "چندرسانه‌ای و صوت/تصویر",
+      "social-communications": "شبکه‌های اجتماعی و ارتباطات",
+      "business-finance": "کسب‌وکار و مالی",
+      "science-mathematics": "علوم و ریاضیات",
+      "blockchain-web3": "بلاکچین و Web3",
+      "other-utilities": "سایر ابزارها"
+    },
+    "parents": {
+      "development": "توسعه",
+      "ai-automation": "هوش مصنوعی و اتوماسیون",
+      "data-documents": "داده و اسناد",
+      "devops-security": "زیرساخت و امنیت",
+      "business-productivity": "کسب‌وکار و بهره‌وری",
+      "media-iot": "رسانه و IoT",
+      "specialized": "تخصصی"
+    },
+    "descriptions": {
+      "ai-llm": "LLM، Claude, OpenAI, LangChain, RAG",
+      "git-version-control": "GitHub, branch, PR, commit",
+      "data-database": "SQL, NoSQL, ORM, پایپلاین داده",
+      "backend-apis": "REST, GraphQL, سمت سرور",
+      "frontend-ui": "React, Vue, CSS, Tailwind",
+      "agents-orchestration": "چند عامل، سیستم‌های خودمختار",
+      "testing-qa": "TDD, تست واحد، دیباگ",
+      "devops-cloud": "Docker, K8s, AWS, CI/CD",
+      "programming-languages": "Python, JS, Rust, Go",
+      "documents-files": "PDF, Word, Excel, OCR",
+      "security-auth": "OAuth, JWT, رمزنگاری",
+      "mcp-skills": "MCP, ایجاد مهارت",
+      "prompts-instructions": "مهندسی پرامپت",
+      "content-writing": "مستندات، نویسندگی فنی",
+      "mobile-development": "iOS, Android, Flutter",
+      "productivity-notes": "Bear Notes، Notion، یادآوری اپل",
+      "smart-home-iot": "Philips Hue، Sonos، اتوماسیون خانگی",
+      "multimedia-audio-video": "Spotify، FFmpeg، تبدیل متن به گفتار",
+      "social-communications": "Twitter، Discord، Slack، پیام‌رسانی",
+      "business-finance": "Stripe، صدور فاکتور، مدل‌سازی مالی",
+      "science-mathematics": "ریاضیات، فیزیک، شیمی، بیوانفورماتیک",
+      "blockchain-web3": "Ethereum، Solana، DeFi، NFT",
+      "other-utilities": "ابزارهای متفرقه"
+    }
+  },
+  "featured": {
+    "title": "مهارت‌های ویژه",
+    "subtitle": "برترین مهارت‌ها بر اساس محبوبیت و مشارکت جامعه"
+  },
+  "owner": {
+    "title": "مهارت‌های @{username}",
+    "notFound": "مالک یافت نشد",
+    "notFoundDescription": "مهارتی برای @{username} یافت نشد",
+    "browseAll": "مرور همه مهارت‌ها",
+    "claimCta": "آیا این مخزن شماست؟",
+    "claimButton": "ثبت مالکیت",
+    "installCta": "نصب محبوب‌ترین مهارت از این مالک:",
+    "stats": {
+      "skills": "{count, plural, one {# مهارت} other {# مهارت}}",
+      "downloads": "دانلود",
+      "views": "بازدید",
+      "repos": "{count, plural, one {# مخزن} other {# مخزن}}"
+    },
+    "sort": {
+      "label": "مرتب‌سازی",
+      "popularity": "محبوب‌ترین",
+      "downloads": "بیشترین دانلود",
+      "stars": "ستاره‌های GitHub"
+    },
+    "repo": {
+      "skills": "{count, plural, one {# مهارت} other {# مهارت}}",
+      "viewOnGithub": "GitHub",
+      "all": "همه مخزن‌ها",
+      "filter": "مخزن"
+    },
+    "pagination": {
+      "showing": "نمایش {start}-{end} از {total} مهارت",
+      "page": "صفحه {current} از {total}"
+    }
+  },
+  "new": {
+    "title": "مهارت‌های جدید",
+    "subtitle": "مهارت‌های اخیراً اضافه شده به بازار",
+    "tabs": {
+      "new": "جدید",
+      "updated": "به‌روز شده"
+    },
+    "newDescription": "مهارت‌های اضافه شده در ۷ روز گذشته",
+    "updatedDescription": "مهارت‌های به‌روز شده در ۷ روز گذشته",
+    "noNewSkills": "مهارت جدیدی در ۷ روز گذشته وجود ندارد",
+    "noUpdatedSkills": "مهارت به‌روز شده‌ای در ۷ روز گذشته وجود ندارد"
+  },
+  "auth": {
+    "signIn": "ورود",
+    "signOut": "خروج",
+    "favorites": "علاقه‌مندی‌ها",
+    "manageSkills": "مدیریت مهارت‌ها"
+  },
+  "rating": {
+    "title": "امتیاز",
+    "your": "امتیاز شما",
+    "average": "میانگین امتیاز",
+    "count": "{count} امتیاز",
+    "submit": "ثبت امتیاز",
+    "update": "به‌روزرسانی امتیاز",
+    "loginToRate": "برای امتیازدهی وارد شوید",
+    "success": "امتیاز با موفقیت ثبت شد",
+    "error": "خطا در ثبت امتیاز"
+  },
+  "favorites": {
+    "title": "علاقه‌مندی‌ها",
+    "subtitle": "مهارت‌هایی که ذخیره کرده‌اید",
+    "add": "افزودن به علاقه‌مندی‌ها",
+    "remove": "حذف از علاقه‌مندی‌ها",
+    "added": "به علاقه‌مندی‌ها اضافه شد",
+    "removed": "از علاقه‌مندی‌ها حذف شد",
+    "loginRequired": "برای ذخیره علاقه‌مندی‌ها وارد شوید",
+    "signIn": "ورود با GitHub",
+    "empty": {
+      "title": "هنوز علاقه‌مندی ندارید",
+      "description": "شروع به کاوش کنید و مهارت‌های مورد علاقه‌تان را ذخیره کنید",
+      "cta": "مرور مهارت‌ها"
+    }
+  },
+  "reviews": {
+    "title": "نظرات",
+    "write": "نوشتن نظر",
+    "placeholder": "تجربه خود با این مهارت را به اشتراک بگذارید...",
+    "submit": "ثبت نظر",
+    "empty": "هنوز نظری ثبت نشده. اولین نفر باشید!",
+    "loadMore": "نظرات بیشتر"
+  },
+  "privacy": {
+    "title": "سیاست حریم خصوصی",
+    "subtitle": "نحوه مدیریت اطلاعات شما",
+    "lastUpdated": "آخرین به‌روزرسانی: بهمن ۱۴۰۴",
+    "sections": {
+      "dataCollected": {
+        "title": "اطلاعاتی که جمع‌آوری می‌کنیم",
+        "description": "هنگام ورود با GitHub، نام کاربری، ایمیل و تصویر پروفایل شما را دریافت می‌کنیم. همچنین علاقه‌مندی‌ها و امتیازات شما را ذخیره می‌کنیم."
+      },
+      "cookies": {
+        "title": "کوکی‌ها و ذخیره‌سازی محلی",
+        "description": "از ذخیره‌سازی محلی برای ذخیره تنظیمات تم (روشن/تاریک) استفاده می‌کنیم. از کوکی‌های ردیابی استفاده نمی‌کنیم."
+      },
+      "thirdParty": {
+        "title": "سرویس‌های شخص ثالث",
+        "description": "از API گیت‌هاب برای احراز هویت و ایندکس مهارت‌ها استفاده می‌کنیم. برای کمک‌های مالی از NOWPayments استفاده می‌شود که سیاست حریم خصوصی خود را دارد."
+      },
+      "retention": {
+        "title": "نگهداری اطلاعات",
+        "description": "اطلاعات حساب شما تا زمان درخواست حذف نگهداری می‌شود. می‌توانید در هر زمان از طریق صفحه پشتیبانی درخواست حذف دهید."
+      },
+      "rights": {
+        "title": "حقوق شما",
+        "description": "می‌توانید از طریق صفحه پشتیبانی درخواست دسترسی، اصلاح یا حذف اطلاعات شخصی خود را بدهید."
+      },
+      "contact": {
+        "title": "تماس",
+        "description": "برای سوالات مربوط به حریم خصوصی، لطفاً از صفحه پشتیبانی دیدن کنید یا در گیت‌هاب issue باز کنید."
+      }
+    }
+  },
+  "terms": {
+    "title": "شرایط استفاده",
+    "subtitle": "قوانین استفاده از SkillHub",
+    "lastUpdated": "آخرین به‌روزرسانی: بهمن ۱۴۰۴",
+    "sections": {
+      "service": {
+        "title": "توضیح سرویس",
+        "description": "SkillHub یک بازار است که مهارت‌های عامل هوش مصنوعی را از مخازن عمومی GitHub ایندکس می‌کند. ابزارهای کشف، جستجو و نصب برای این مهارت‌ها ارائه می‌دهیم."
+      },
+      "responsibilities": {
+        "title": "مسئولیت‌های کاربر",
+        "description": "شما مسئول بررسی کد منبع هر مهارت قبل از نصب هستید. مهارت‌ها کد شخص ثالث هستند و با مسئولیت خودتان نصب می‌کنید."
+      },
+      "disclaimer": {
+        "title": "سلب مسئولیت",
+        "description": "مهارت‌های موجود در SkillHub بدون هیچ گارانتی ارائه می‌شوند. ما الگوهای مخرب شناخته‌شده را اسکن می‌کنیم اما نمی‌توانیم امنیت یا عملکرد هیچ مهارتی را تضمین کنیم."
+      },
+      "liability": {
+        "title": "محدودیت مسئولیت",
+        "description": "SkillHub مسئول هیچ آسیبی ناشی از استفاده از مهارت‌های ایندکس شده در این پلتفرم نیست. با مسئولیت خودتان استفاده کنید."
+      },
+      "takedown": {
+        "title": "DMCA و حذف",
+        "description": "اگر مالک مخزن هستید و می‌خواهید مهارت شما از SkillHub حذف شود، لطفاً از صفحه درخواست حذف استفاده کنید."
+      },
+      "changes": {
+        "title": "تغییرات در شرایط",
+        "description": "ممکن است این شرایط را به‌روز کنیم. ادامه استفاده از SkillHub پس از تغییرات به معنای پذیرش شرایط جدید است."
+      }
+    }
+  },
+  "claim": {
+    "title": "مدیریت مهارت‌ها",
+    "subtitle": "درخواست افزودن مهارت جدید یا حذف مهارت‌های موجود از SkillHub",
+    "loginRequired": "لطفاً با GitHub وارد شوید تا بتوانید مهارت‌ها را مدیریت کنید",
+    "signIn": "ورود با GitHub",
+    "optional": "(اختیاری)",
+    "mirror": {
+      "title": "این امکان در سایت اصلی فعال است",
+      "description": "برای ثبت مالکیت یا افزودن مهارت، لطفاً از سایت اصلی استفاده کنید.",
+      "button": "رفتن به سایت اصلی"
+    },
+    "tabs": {
+      "remove": "حذف مهارت",
+      "add": "افزودن مهارت"
+    },
+    "form": {
+      "skillId": "شناسه مهارت",
+      "skillIdPlaceholder": "مثال: your-username/your-repo/skill-name",
+      "skillIdHelp": "شناسه کامل مهارت را همانطور که در SkillHub نمایش داده می‌شود وارد کنید",
+      "reason": "دلیل حذف",
+      "reasonPlaceholder": "لطفاً توضیح دهید چرا می‌خواهید این مهارت حذف شود...",
+      "submit": "ارسال درخواست",
+      "submitting": "در حال تایید مالکیت..."
+    },
+    "addForm": {
+      "repositoryUrl": "آدرس مخزن GitHub",
+      "repositoryUrlPlaceholder": "https://github.com/owner/repo",
+      "repositoryUrlHelp": "آدرس کامل مخزن GitHub که حاوی مهارت است را وارد کنید",
+      "reason": "چرا این مهارت باید اضافه شود؟",
+      "reasonPlaceholder": "توضیح دهید این مهارت چه کاری انجام می‌دهد و چرا مفید است...",
+      "submit": "ارسال درخواست",
+      "submitting": "در حال اعتبارسنجی مخزن..."
+    },
+    "success": {
+      "title": "مهارت مسدود شد",
+      "description": "مهارت شما از ایندکس شدن مسدود شد. دیگر در SkillHub نمایش داده نخواهد شد.",
+      "viewRequests": "مشاهده درخواست‌های من"
+    },
+    "addSuccess": {
+      "title": "درخواست ثبت شد",
+      "description": "درخواست افزودن مهارت ثبت شد. فایل SKILL.md یافت شد و به زودی ایندکس خواهد شد.",
+      "descriptionNoSkillMd": "درخواست شما ثبت شد. فایل SKILL.md یافت نشد - مخزن به صورت دستی بررسی خواهد شد. در صورت تایید، ایمیل دریافت خواهید کرد.",
+      "descriptionMultiplePrefix": "درخواست شما ثبت شد. ",
+      "descriptionMultipleSuffix": " مهارت در مخزن یافت شد که به زودی ایندکس خواهند شد.",
+      "viewRequests": "مشاهده درخواست‌ها",
+      "foundSkillsIn": "مهارت‌ها در این مسیرها یافت شدند:",
+      "root": "(root)",
+      "andMore": "... و {count} مورد دیگر"
+    },
+    "error": {
+      "notOwner": "شما مالک یا ادمین این مخزن نیستید. فقط مالکان مخزن می‌توانند درخواست حذف دهند.",
+      "skillNotFound": "این مهارت در پایگاه داده ما یافت نشد.",
+      "alreadyPending": "شما قبلاً یک درخواست در انتظار برای این مورد دارید.",
+      "githubError": "تأیید مالکیت مخزن با GitHub ناموفق بود. لطفاً بعداً دوباره تلاش کنید.",
+      "invalidSkill": "این مهارت اطلاعات معتبر مخزن GitHub ندارد.",
+      "invalidUrl": "لطفاً یک URL معتبر برای مخزن GitHub وارد کنید.",
+      "invalidRepo": "مخزن یافت نشد یا قابل دسترسی نیست. لطفاً URL را بررسی کنید و اطمینان حاصل کنید که مخزن عمومی است.",
+      "rateLimitExceeded": "محدودیت API GitHub تمام شده است. لطفاً چند دقیقه بعد دوباره تلاش کنید.",
+      "networkTimeout": "هنگام بررسی مخزن زمان اتصال تمام شد. لطفاً دوباره تلاش کنید.",
+      "generic": "خطایی رخ داد. لطفاً دوباره تلاش کنید."
+    },
+    "myRequests": {
+      "title": "درخواست‌های من",
+      "empty": "هنوز درخواستی ثبت نکرده‌اید.",
+      "status": {
+        "pending": "در انتظار",
+        "approved": "تایید شده",
+        "rejected": "رد شده",
+        "indexed": "ایندکس شده"
+      },
+      "skillsFoundPrefix": "",
+      "skillsFoundSuffix": " مهارت یافت شد:",
+      "showLess": "نمایش کمتر",
+      "showAllPrefix": "نمایش همه ",
+      "showAllSuffix": " مسیر"
+    }
+  },
+  "attribution": {
+    "title": "تقدیر و تشکر",
+    "subtitle": "قدردانی از منابعی که SkillHub را ممکن می‌سازند",
+    "sources": {
+      "title": "منابع داده"
+    },
+    "licenses": {
+      "title": "رعایت مجوزها",
+      "description": "همه مهارت‌های ایندکس شده مجوز اصلی خود را حفظ می‌کنند. SkillHub فقط متادیتا و قابلیت جستجو ارائه می‌دهد. ما کد مهارت‌ها را تغییر یا بازتوزیع نمی‌کنیم."
+    },
+    "howItWorks": {
+      "title": "نحوه ایندکس کردن",
+      "step1": "کراولر ما مخازن عمومی را با استراتژی‌های مختلف کشف می‌کند: جستجوی کد GitHub، جستجوی موضوعی، لیست‌های منتخب و شبکه Fork‌ها.",
+      "step2": "ما ۵ فرمت فایل دستورالعمل را اسکن می‌کنیم: SKILL.md (Claude)، AGENTS.md (Codex)، copilot-instructions.md (GitHub Copilot)، .cursorrules (Cursor) و .windsurfrules (Windsurf).",
+      "step3": "متادیتا (نام، توضیح، نویسنده، مجوز) را استخراج و اسکن امنیتی انجام می‌دهیم. فرمت‌های غیراستاندارد به عنوان تنظیمات خاص پروژه علامت‌گذاری می‌شوند.",
+      "step4": "کاربران مستقیماً به مخازن اصلی برای نصب و استفاده هدایت می‌شوند. ما هیچ کدی را تغییر یا بازتوزیع نمی‌کنیم."
+    },
+    "thanks": {
+      "title": "تشکر ویژه",
+      "subtitle": "از این پروژه‌ها و جوامع سپاسگزاریم"
+    },
+    "rights": {
+      "title": "حقوق شما به عنوان مالک مخزن",
+      "description": "اگر مالک یک مخزن هستید و می‌خواهید مهارت شما از SkillHub حذف شود، می‌توانید درخواست حذف ارسال کنید. ما به ترجیحات نویسندگان احترام می‌گذاریم و همه درخواست‌های معتبر را انجام می‌دهیم.",
+      "claimLink": "ارسال درخواست حذف"
+    }
+  },
+  "claudePlugin": {
+    "metadata": {
+      "title": "پلاگین Claude Code - یکپارچه‌سازی SkillHub با MCP",
+      "description": "دسترسی زودهنگام به یکپارچه‌سازی SkillHub با Claude Code. کشف و نصب مهارت‌ها مستقیماً از داخل Claude."
+    },
+    "hero": {
+      "badge": "به زودی",
+      "title": "کشف مهارت‌ها در داخل Claude Code",
+      "subtitleA": "دسترسی زودهنگام به پلاگین Claude Code ما را دریافت کنید. جستجوی بیش از {count} مهارت و نصب با یک دستور - همه از داخل Claude.",
+      "subtitleB": "آیا از پلاگین Claude Code برای کشف مهارت‌ها استفاده می‌کنید؟ با ثبت‌نام، به ما در اولویت‌بندی کمک کنید."
+    },
+    "stats": {
+      "skills": "مهارت موجود",
+      "platforms": "پلتفرم AI",
+      "rating": "میانگین امتیاز"
+    },
+    "benefits": {
+      "title": "چه چیزی دریافت می‌کنید",
+      "discovery": {
+        "title": "جستجوی معنایی",
+        "description": "مهارت‌ها را با زبان طبیعی مستقیماً در Claude Code پیدا کنید."
+      },
+      "install": {
+        "title": "نصب یک‌کلیکی",
+        "description": "مهارت‌ها را بدون ترک مکالمه نصب کنید. بدون مدیریت دستی فایل."
+      },
+      "instant": {
+        "title": "فعال‌سازی فوری",
+        "description": "مهارت‌ها بلافاصله پس از نصب در دسترس هستند. نیازی به ریستارت نیست."
+      },
+      "secure": {
+        "title": "امنیت در اولویت",
+        "description": "هر مهارت قبل از در دسترس قرار گرفتن از نظر الگوهای مخرب اسکن می‌شود."
+      }
+    },
+    "howItWorks": {
+      "title": "چگونه کار می‌کند",
+      "subtitle": "کشف طبیعی مهارت‌ها از طریق مکالمه",
+      "example": {
+        "comment": "از Claude بخواهید یک مهارت پیدا کند",
+        "userMessage": "یک مهارت برای کار با فایل‌های PDF پیدا کن",
+        "claudeComment": "Claude از طریق MCP در SkillHub جستجو می‌کند",
+        "result": "→ یافت شد: anthropics/skills/pdf (54.5k ⭐) - مهارت کار با PDF"
+      }
+    },
+    "faq": {
+      "title": "سوالات متداول",
+      "q1": {
+        "question": "پلاگین کی در دسترس خواهد بود؟",
+        "answer": "هدف ما انتشار اولیه در Q1 2026 است. کاربران دسترسی زودهنگام اولویت دسترسی و فرصت ارائه بازخورد در طول تست بتا را خواهند داشت."
+      },
+      "q2": {
+        "question": "آیا با مهارت‌های موجود من کار می‌کند؟",
+        "answer": "بله! پلاگین با فرمت استاندارد SKILL.md که توسط Claude Code استفاده می‌شود یکپارچه می‌شود. مهارت‌های موجود شما به کار خود ادامه می‌دهند و می‌توانید مهارت‌های جدید را از طریق SkillHub کشف کنید."
+      },
+      "q3": {
+        "question": "آیا استفاده رایگان است؟",
+        "answer": "بله، پلاگین کاملاً رایگان و متن‌باز خواهد بود، درست مثل بقیه SkillHub. ما به دموکراتیک کردن دسترسی به مهارت‌های عامل هوش مصنوعی باور داریم."
+      }
+    },
+    "cta": {
+      "title": "مهارت‌ها را همین الان کاوش کنید",
+      "description": "در انتظار پلاگین، مجموعه بیش از {count} مهارت ما را مرور کنید.",
+      "browseSkills": "مرور مهارت‌ها",
+      "learnMore": "درباره مهارت‌ها بیشتر بدانید"
+    },
+    "form": {
+      "emailPlaceholder": "ایمیل خود را وارد کنید",
+      "ctaA": "دسترسی زودهنگام",
+      "ctaB": "علاقه‌مندم",
+      "successMessage": "در لیست قرار گرفتید!",
+      "successDescription": "وقتی پلاگین Claude Code برای تست بتا آماده شد به شما اطلاع می‌دهیم.",
+      "invalidEmail": "لطفاً یک آدرس ایمیل معتبر وارد کنید",
+      "genericError": "مشکلی پیش آمد. لطفاً دوباره تلاش کنید.",
+      "privacyNote": "فقط درباره راه‌اندازی پلاگین ایمیل می‌فرستیم. بدون اسپم، هرگز."
+    }
+  },
+  "mirror": {
+    "text": "شما در حال مشاهده نسخه آینه‌ای SkillHub هستید.",
+    "link": "سایت اصلی"
+  },
+  "banner": {
+    "text": "{count}+ مهارت برای Claude، Copilot و Codex — در چند ثانیه نصب کنید",
+    "feedback": "بازخورد",
+    "dismiss": "بستن"
+  },
+  "email": {
+    "welcome": {
+      "subject": "به SkillHub خوش آمدید!",
+      "greeting": "سلام {username}،",
+      "intro": "به SkillHub خوش آمدید — بازار متن‌باز مهارت‌های AI Agent. خوشحالیم که اینجایید!",
+      "whatIs": "SkillHub بیش از {count} مهارت از GitHub را ایندکس کرده که با Claude، OpenAI Codex، GitHub Copilot و سایر پلتفرم‌ها کار می‌کنند.",
+      "getStarted": "شروع کنید:",
+      "browseSkills": "مرور مهارت‌ها",
+      "installCli": "نصب CLI",
+      "docs": "مستندات",
+      "newsletterCta": "می‌خواهید به‌روز بمانید؟ در خبرنامه ما برای مهارت‌ها، ویژگی‌ها و نکات جدید عضو شوید.",
+      "subscribeLink": "عضویت در خبرنامه"
+    },
+    "newsletter": {
+      "subject": "به خبرنامه SkillHub خوش آمدید!",
+      "greeting": "ممنون از عضویت شما!",
+      "intro": "شما در خبرنامه SkillHub عضو شدید. به‌روزرسانی‌های زیر را دریافت خواهید کرد:",
+      "items": ["مهارت‌های جدید اضافه شده به بازار", "به‌روزرسانی ویژگی‌ها و بهبودها", "نکات استفاده از مهارت‌های AI Agent"],
+      "visitUs": "مشاهده SkillHub",
+      "unsubscribe": "لغو عضویت"
+    },
+    "claim": {
+      "addSubject": "درخواست افزودن مهارت شما ثبت شد",
+      "removeSubject": "درخواست حذف مهارت شما پردازش شد",
+      "addGreeting": "درخواست شما ثبت شد!",
+      "removeGreeting": "درخواست حذف شما پردازش شد!",
+      "addPending": "درخواست شما در انتظار بررسی است. پس از پردازش به شما اطلاع خواهیم داد.",
+      "removeApproved": "مهارت از ایندکس شدن مسدود شد و دیگر در SkillHub نمایش داده نخواهد شد.",
+      "viewRequests": "مشاهده درخواست‌ها",
+      "approvedSubject": "درخواست شما تایید شد",
+      "rejectedSubject": "به‌روزرسانی درخواست شما"
+    }
+  }
+}

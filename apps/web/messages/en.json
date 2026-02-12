@@ -1,0 +1,908 @@
+{
+  "metadata": {
+    "title": "SkillHub - AI Agent Skills Marketplace",
+    "description": "Discover, install and manage AI Agent skills for Claude, Codex, Copilot, Cursor and Windsurf"
+  },
+  "common": {
+    "search": "Search...",
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "retry": "Retry",
+    "viewAll": "View all",
+    "learnMore": "Learn more",
+    "getStarted": "Get started",
+    "install": "Install",
+    "installed": "Installed",
+    "verified": "Verified",
+    "featured": "Featured",
+    "trending": "Trending",
+    "recent": "Recent",
+    "stars": "stars",
+    "downloads": "downloads",
+    "views": "views",
+    "version": "Version",
+    "license": "License",
+    "platforms": "Platforms",
+    "security": "Security",
+    "quality": "Quality"
+  },
+  "nav": {
+    "home": "Home",
+    "browse": "Browse",
+    "categories": "Categories",
+    "docs": "Docs",
+    "about": "About",
+    "github": "GitHub",
+    "sourceCode": "Source Code (Coming Soon)",
+    "sourceCodeShort": "Source Code",
+    "switchLanguage": "Switch to Farsi"
+  },
+  "home": {
+    "hero": {
+      "tagline": "AI Agent Skills Marketplace",
+      "title": "Supercharge Your\nAI Agent",
+      "subtitle": "Ready-to-use skills for Claude, Codex, Copilot, Cursor and Windsurf. One-line install, completely free and open source.",
+      "searchPlaceholder": "Search skills...",
+      "cta": "Browse Skills",
+      "ctaSecondary": "Getting Started"
+    },
+    "stats": {
+      "skills": "Skills",
+      "downloads": "Downloads",
+      "contributors": "Contributors",
+      "categories": "Categories"
+    },
+    "featured": {
+      "title": "Featured Skills",
+      "subtitle": "Curated and popular skills from the community"
+    },
+    "categories": {
+      "title": "Categories",
+      "subtitle": "Find skills by use case"
+    },
+    "howItWorks": {
+      "title": "How It Works",
+      "step1": {
+        "title": "Find a Skill",
+        "description": "Search through thousands of skills or browse by category"
+      },
+      "step2": {
+        "title": "Install with One Line",
+        "description": "Use npx skillhub install to add the skill to your system"
+      },
+      "step3": {
+        "title": "Start Using",
+        "description": "The skill is automatically detected and activated by your AI Agent"
+      }
+    }
+  },
+  "browse": {
+    "title": "Browse Skills",
+    "subtitle": "Discover and install AI Agent skills",
+    "filters": {
+      "all": "All",
+      "platform": "Platform",
+      "category": "Category",
+      "allCategories": "All Categories",
+      "sort": "Sort by",
+      "sortOptions": {
+        "lastDownloaded": "Recently downloaded",
+        "stars": "Most stars",
+        "downloads": "Most downloads",
+        "recent": "Recently updated",
+        "rating": "Highest rated"
+      },
+      "minStars": "Min stars",
+      "minSecurity": "Min security score",
+      "viewFeatured": "View Featured Skills",
+      "format": "Format",
+      "allFormats": "All Formats",
+      "agentSkills": "Agent Skills (SKILL.md)"
+    },
+    "results": "{count} skills found",
+    "resultsRange": "Showing {start}-{end} of {total} skills",
+    "noResults": "No skills found",
+    "noResultsWithQuery": "No results for \"{query}\"",
+    "noResultsHint": "Try adjusting your filters or search for something else",
+    "searching": "Searching...",
+    "activeFilters": {
+      "search": "Search",
+      "category": "Category",
+      "sortBy": "Sorted by",
+      "clearAll": "Clear all"
+    },
+    "emptyState": {
+      "tryDifferent": "Try different search terms or adjust your filters",
+      "clearFilters": "Clear filters",
+      "browseAll": "Browse Featured Skills"
+    },
+    "pagination": {
+      "previous": "Previous",
+      "next": "Next",
+      "page": "Page",
+      "of": "of"
+    }
+  },
+  "skill": {
+    "install": {
+      "title": "Install Skill",
+      "cli": "Install with CLI",
+      "cliGlobal": "Install globally (user-level):",
+      "cliProject": "Install in current project:",
+      "browser": "Install from Browser",
+      "manual": "Manual Install",
+      "selectFolder": "Select Folder and Install",
+      "suggestedPath": "Suggested path",
+      "folderNotePrefix": "A folder named \"",
+      "folderNoteSuffix": "\" will be created in the selected location",
+      "copied": "Copied!",
+      "downloadZip": "Download ZIP",
+      "copyCommand": "Copy command",
+      "downloading": "Downloading...",
+      "installing": "Installing...",
+      "installed": "Installed!",
+      "downloadFailed": "Download failed. Please try again.",
+      "browserNotSupported": "Your browser does not support direct folder access.",
+      "rateLimitError": "GitHub API rate limit exceeded. Please try again in a few minutes.",
+      "timeoutError": "Request timed out. The skill may have too many files.",
+      "notFoundError": "Skill files not found.",
+      "noFilesError": "No files found in skill.",
+      "disclaimer": "Skills are third-party code from public GitHub repositories. SkillHub scans for known malicious patterns but cannot guarantee safety. Review the source code before installing."
+    },
+    "share": {
+      "button": "Share",
+      "copied": "Link copied!",
+      "copyLink": "Copy link"
+    },
+    "tabs": {
+      "readme": "Readme",
+      "files": "Files",
+      "reviews": "Reviews",
+      "versions": "Versions"
+    },
+    "security": {
+      "score": "Security Score",
+      "status": "Security Status",
+      "pass": "Pass",
+      "warning": "Warning",
+      "fail": "Fail",
+      "excellent": "Excellent",
+      "good": "Good",
+      "fair": "Fair",
+      "poor": "Poor"
+    },
+    "meta": {
+      "author": "Author",
+      "repository": "Repository",
+      "homepage": "Homepage",
+      "lastUpdate": "Last updated",
+      "createdAt": "Created"
+    }
+  },
+  "footer": {
+    "description": "Open source AI Agent skills marketplace",
+    "links": {
+      "product": "Product",
+      "resources": "Resources",
+      "company": "Company",
+      "legal": "Legal",
+      "browseSkills": "Browse Skills",
+      "categories": "Categories",
+      "featured": "Featured",
+      "newSkills": "New Skills",
+      "documentation": "Documentation",
+      "gettingStarted": "Getting Started",
+      "apiReference": "API Reference",
+      "cliTool": "CLI Tool",
+      "about": "About",
+      "airano": "Airano",
+      "paleBlueDot": "PaleBlueDot",
+      "support": "Support",
+      "privacyPolicy": "Privacy Policy",
+      "termsOfService": "Terms of Service",
+      "attribution": "Attribution",
+      "manageSkills": "Manage Skills"
+    },
+    "sourceCode": "Source Code (Coming Soon)",
+    "copyright": "© {year} SkillHub. Open source under MIT license."
+  },
+  "about": {
+    "title": "About SkillHub",
+    "subtitle": "The open-source marketplace for AI Agent skills",
+    "mission": {
+      "title": "Our Mission",
+      "description": "SkillHub is building the largest open-source ecosystem for AI Agent skills. We believe in democratizing access to AI capabilities through a community-driven marketplace."
+    },
+    "features": {
+      "title": "Why SkillHub?",
+      "openSource": "100% Open Source",
+      "openSourceDesc": "MIT licensed, self-hostable, and community-driven",
+      "multiPlatform": "Multi-Platform",
+      "multiPlatformDesc": "Works with Claude, OpenAI Codex, GitHub Copilot, and more",
+      "secure": "Security First",
+      "secureDesc": "Every skill is scanned for security vulnerabilities"
+    }
+  },
+  "contact": {
+    "title": "Contact Us",
+    "subtitle": "Get in touch with the SkillHub team",
+    "github": "Open an Issue",
+    "githubDesc": "For bugs, feature requests, or contributions",
+    "email": "Email Us",
+    "emailDesc": "For business inquiries",
+    "discord": "Join Discord",
+    "discordDesc": "Chat with the community"
+  },
+  "support": {
+    "title": "Support SkillHub",
+    "subtitle": "Help us build the best AI skills marketplace",
+    "email": "Contact Us",
+    "emailDesc": "Found a bug or have feedback? Send us an email.",
+    "sendEmail": "Send Email",
+    "donate": "Donate Crypto",
+    "donateDesc": "Support development with cryptocurrency",
+    "donateNow": "Donate Now",
+    "sponsor": "Become a Sponsor",
+    "sponsorDesc": "Get your name on our sponsors page",
+    "becomeSponsor": "Sponsor on GitHub",
+    "acceptedCrypto": "We Accept 100+ Cryptocurrencies",
+    "whyCryptoTitle": "Why Crypto Only?",
+    "whyCryptoDesc": "Traditional payment processors (PayPal, Stripe, GitHub Sponsors, Patreon) are not available in all regions. Cryptocurrency allows anyone, anywhere to support open source projects without restrictions.",
+    "popularCoins": "Popular Options",
+    "andMoreCrypto": "+ 100 more cryptocurrencies"
+  },
+  "docs": {
+    "title": "Documentation",
+    "subtitle": "Learn how to use SkillHub",
+    "gettingStarted": {
+      "title": "Getting Started",
+      "description": "Quick start guide to install and use skills"
+    },
+    "cli": {
+      "title": "CLI Reference",
+      "description": "Command-line tool documentation"
+    },
+    "api": {
+      "title": "API Reference",
+      "description": "REST API documentation for developers",
+      "baseUrl": "Base URL",
+      "authSection": {
+        "title": "Authentication",
+        "description": "Most endpoints are public and require no authentication. Endpoints that modify user data require GitHub OAuth authentication via session cookies.",
+        "howTo": "Sign in at skills.palebluedot.live to create a session. Authenticated endpoints return 401 if no valid session exists."
+      },
+      "rateLimitSection": {
+        "title": "Rate Limiting",
+        "description": "All endpoints are rate-limited using a sliding window algorithm. Rate limit headers are included in responses.",
+        "tier": "Tier",
+        "limit": "Limit",
+        "use": "Used For",
+        "anonymous": "Anonymous",
+        "anonymousUse": "Public read endpoints",
+        "search": "Search",
+        "searchUse": "Search and file fetching",
+        "authenticated": "Authenticated",
+        "authenticatedUse": "User actions (logged in)",
+        "headersTitle": "Response Headers",
+        "headerLimit": "Maximum requests per window",
+        "headerRemaining": "Remaining requests in current window",
+        "headerReset": "Unix timestamp when the window resets"
+      },
+      "errorSection": {
+        "title": "Error Responses",
+        "description": "All errors follow a consistent JSON format.",
+        "commonCodes": "Common Status Codes",
+        "code400": "Bad Request — Missing or invalid parameters",
+        "code401": "Unauthorized — Authentication required",
+        "code404": "Not Found — Resource does not exist",
+        "code429": "Too Many Requests — Rate limit exceeded",
+        "code500": "Internal Server Error"
+      },
+      "sections": {
+        "skills": {
+          "title": "Skills",
+          "description": "Search, browse, and retrieve skill information"
+        },
+        "skillFiles": {
+          "title": "Skill Files",
+          "description": "Fetch skill file contents and download as ZIP"
+        },
+        "userActions": {
+          "title": "User Actions",
+          "description": "Ratings, favorites, and skill management"
+        },
+        "discovery": {
+          "title": "Discovery & Metadata",
+          "description": "Categories, statistics, and platform health"
+        },
+        "newsletter": {
+          "title": "Newsletter",
+          "description": "Subscribe and unsubscribe from the newsletter"
+        }
+      },
+      "labels": {
+        "parameters": "Query Parameters",
+        "requestBody": "Request Body",
+        "required": "Required",
+        "optional": "Optional",
+        "default": "Default",
+        "responseExample": "Response Example",
+        "rateLimit": "Rate Limit",
+        "cache": "Cache",
+        "authRequired": "Auth",
+        "notes": "Note"
+      },
+      "endpoints": {
+        "searchSkills": "Search skills with full-text search, filters, and pagination",
+        "getSkill": "Get detailed information about a specific skill",
+        "featuredSkills": "Get featured and popular skills",
+        "recentSkills": "Get recently added or updated skills",
+        "trackInstall": "Track a skill installation",
+        "addRequest": "Request a new skill to be indexed",
+        "removalRequest": "Request removal of a skill you own",
+        "getSkillFiles": "Get all files in a skill folder with content",
+        "downloadZip": "Download skill files as a ZIP archive",
+        "getRatings": "Get ratings and reviews for a skill",
+        "createRating": "Create or update your rating for a skill",
+        "getMyRating": "Get your own rating for a specific skill",
+        "getFavorites": "Get your list of favorited skills",
+        "addFavorite": "Add a skill to your favorites",
+        "removeFavorite": "Remove a skill from your favorites",
+        "checkFavorites": "Check which skills are in your favorites",
+        "getCategories": "Get all skill categories with counts",
+        "getStats": "Get global marketplace statistics",
+        "healthCheck": "Check API and service health status",
+        "getAttribution": "Get attribution and data source statistics",
+        "subscribe": "Subscribe an email to the newsletter",
+        "unsubscribe": "Unsubscribe an email from the newsletter"
+      },
+      "params": {
+        "q": "Full-text search query",
+        "category": "Filter by category slug",
+        "platform": "Filter by platform",
+        "format": "Filter by source format",
+        "verified": "Only show verified skills",
+        "minStars": "Minimum GitHub stars",
+        "sort": "Sort order",
+        "page": "Page number",
+        "limit": "Results per page (max 100)",
+        "skillId": "Full skill ID (e.g. owner/repo/skill-name)",
+        "id": "Skill ID",
+        "rating": "Rating value (1-5)",
+        "review": "Optional review text",
+        "skillIds": "Array of skill IDs to check",
+        "email": "Email address",
+        "source": "Subscription source",
+        "locale": "Language (en or fa)",
+        "repositoryUrl": "Public GitHub repository URL",
+        "reason": "Reason for the request",
+        "platformZip": "Target platform for file transformation",
+        "limitNum": "Number of items to return",
+        "offset": "Number of items to skip",
+        "method": "Installation method",
+        "owner": "GitHub repository owner",
+        "repo": "GitHub repository name"
+      },
+      "notes": {
+        "searchFallback": "Uses Meilisearch when available, falls back to PostgreSQL",
+        "viewCount": "Increments view count (deduplicated per IP per hour)",
+        "installDedup": "Download count deduplicated per IP per 5 minutes",
+        "zipTransform": "Files are transformed for the target platform format (claude, codex, cursor, windsurf, copilot)",
+        "cacheInDB": "Files are cached in database and served from cache on subsequent requests",
+        "alwaysSuccess": "Always returns success to prevent email enumeration"
+      }
+    },
+    "content": {
+      "installation": "Installation",
+      "installCli": "Install the CLI globally:",
+      "usage": "Usage",
+      "searchSkills": "Search for skills:",
+      "installSkill": "Install a skill:",
+      "listInstalled": "List installed skills:",
+      "webInstallTitle": "Install from Website",
+      "webInstallDesc": "You can also install skills directly from the SkillHub website:",
+      "webInstallStep1": "1. Find a skill on the Browse page or via search",
+      "webInstallStep2": "2. On the skill page, use the \"Install Skill\" section on the right sidebar",
+      "webInstallStep3": "3. Choose your method:",
+      "webInstallMethodFolder": "Select Folder and Install — picks a folder on your computer and saves the skill files directly",
+      "webInstallMethodZip": "Download ZIP — downloads the skill files as a ZIP archive to extract manually",
+      "commands": "Available Commands",
+      "examples": "Examples",
+      "discoveryTitle": "Dynamic Skill Discovery",
+      "discoveryIntro": "Add a discovery prompt to your project's instruction file and your AI agent will automatically search, install, and use skills from SkillHub when it encounters unfamiliar tasks.",
+      "discoveryModesTitle": "3 Discovery Modes",
+      "modeStandard": "Standard",
+      "modeStandardDesc": "Searches for specialized or complex tasks. Balanced, token-efficient — recommended for most projects.",
+      "modeCompact": "Compact",
+      "modeCompactDesc": "Minimal instruction block. Token-efficient for small CLAUDE.md files.",
+      "modeOneShot": "One-Shot Prompt",
+      "modeOneShotDesc": "Paste directly into a conversation. No file changes needed.",
+      "modeStandardLatency": "+2-5s/task",
+      "modeCompactLatency": "~0s (on-demand)",
+      "modeOneShotLatency": "Varies",
+      "modeStandardQuality": "High",
+      "modeCompactQuality": "Good",
+      "modeOneShotQuality": "Moderate",
+      "modeStandardBestFor": "Most projects (recommended)",
+      "modeCompactBestFor": "Small projects, token-conscious setups",
+      "modeOneShotBestFor": "Quick conversations without CLAUDE.md",
+      "latency": "Latency",
+      "qualityBoost": "Quality",
+      "bestFor": "Best for",
+      "recommended": "Recommended",
+      "copyPrompt": "Copy",
+      "copied": "Copied!",
+      "selectMode": "Select a mode to see its setup prompt",
+      "addToFile": "Add this block to your CLAUDE.md, AGENTS.md, or platform-specific instruction file:",
+      "discoverySetup": "Setup: Add to your instruction file",
+      "discoverySetupDesc": "Add this block to your CLAUDE.md, AGENTS.md, or platform-specific instruction file:",
+      "crossPlatformTitle": "Cross-Platform Support",
+      "crossPlatformDesc": "SkillHub works with all major AI coding agents:",
+      "platformClaude": "Claude Code — CLAUDE.md",
+      "platformCodex": "OpenAI Codex — AGENTS.md",
+      "platformCopilot": "GitHub Copilot — .github/copilot-instructions.md",
+      "platformCursor": "Cursor — .cursorrules",
+      "platformWindsurf": "Windsurf — Windsurf config",
+      "fullDocsLink": "See the full discovery documentation for detailed prompts, search strategies, and advanced configuration.",
+      "cmdInstallDesc": "Install a skill (--platform, --project, --force, --no-api)",
+      "cmdSearchDesc": "Search for skills (--platform, --limit, --page, --sort stars|downloads|rating|recent)",
+      "cmdListDesc": "List installed skills (--platform, --project, --all)",
+      "cmdUpdateDesc": "Update a skill or use --all to update all",
+      "cmdUninstallDesc": "Remove an installed skill (--platform, --project)",
+      "cmdConfigDesc": "Manage CLI settings (--set, --get, --list)",
+      "exInstallGlobal": "Install globally:",
+      "exInstallProject": "Install in current project:",
+      "exSearch": "Search for skills:",
+      "exSearchSort": "Search sorted by stars:",
+      "exUpdateAll": "Update all installed skills:",
+      "platformsTitle": "Supported Platforms",
+      "platformsDesc": "SkillHub CLI supports 5 AI coding platforms:",
+      "platformClaudePath": "~/.claude/skills/",
+      "platformCodexPath": "~/.codex/skills/",
+      "platformCopilotPath": ".github/instructions/",
+      "platformCursorPath": ".cursor/rules/",
+      "platformWindsurfPath": ".windsurf/rules/",
+      "configTitle": "Configuration",
+      "configDesc": "Settings are stored in ~/.skillhub/config.json",
+      "configDefaultPlatform": "Default platform for installations",
+      "configApiUrl": "SkillHub API URL",
+      "configGithubToken": "GitHub token for higher API rate limits"
+    }
+  },
+  "categories": {
+    "title": "Categories",
+    "subtitle": "Browse skills by category",
+    "skillCount": "skills",
+    "names": {
+      "ai-llm": "AI & LLM",
+      "git-version-control": "Git & Version Control",
+      "data-database": "Data & Database",
+      "backend-apis": "Backend & APIs",
+      "frontend-ui": "Frontend & UI",
+      "agents-orchestration": "Agents & Orchestration",
+      "testing-qa": "Testing & QA",
+      "devops-cloud": "DevOps & Cloud",
+      "programming-languages": "Programming Languages",
+      "documents-files": "Documents & Files",
+      "security-auth": "Security & Auth",
+      "mcp-skills": "MCP & Skills",
+      "prompts-instructions": "Prompts & Instructions",
+      "content-writing": "Content & Writing",
+      "mobile-development": "Mobile Development",
+      "productivity-notes": "Productivity & Notes",
+      "smart-home-iot": "Smart Home & IoT",
+      "multimedia-audio-video": "Multimedia & Audio/Video",
+      "social-communications": "Social & Communications",
+      "business-finance": "Business & Finance",
+      "science-mathematics": "Science & Mathematics",
+      "blockchain-web3": "Blockchain & Web3",
+      "other-utilities": "Other & Utilities"
+    },
+    "parents": {
+      "development": "Development",
+      "ai-automation": "AI & Automation",
+      "data-documents": "Data & Documents",
+      "devops-security": "DevOps & Security",
+      "business-productivity": "Business & Productivity",
+      "media-iot": "Media & IoT",
+      "specialized": "Specialized"
+    },
+    "descriptions": {
+      "ai-llm": "LLMs, Claude, OpenAI, LangChain, RAG",
+      "git-version-control": "GitHub, branching, PRs, commits",
+      "data-database": "SQL, NoSQL, ORM, data pipelines",
+      "backend-apis": "REST, GraphQL, server-side",
+      "frontend-ui": "React, Vue, CSS, Tailwind",
+      "agents-orchestration": "Multi-agent, autonomous systems",
+      "testing-qa": "TDD, unit tests, debugging",
+      "devops-cloud": "Docker, K8s, AWS, CI/CD",
+      "programming-languages": "Python, JS, Rust, Go",
+      "documents-files": "PDF, Word, Excel, OCR",
+      "security-auth": "OAuth, JWT, encryption",
+      "mcp-skills": "MCP, skill creation",
+      "prompts-instructions": "Prompt engineering",
+      "content-writing": "Docs, technical writing",
+      "mobile-development": "iOS, Android, Flutter",
+      "productivity-notes": "Bear Notes, Notion, Apple Reminders",
+      "smart-home-iot": "Philips Hue, Sonos, Home automation",
+      "multimedia-audio-video": "Spotify, FFmpeg, text-to-speech",
+      "social-communications": "Twitter, Discord, Slack, messaging",
+      "business-finance": "Stripe, invoicing, financial modeling",
+      "science-mathematics": "Math, physics, chemistry, bioinformatics",
+      "blockchain-web3": "Ethereum, Solana, DeFi, NFTs",
+      "other-utilities": "Miscellaneous tools"
+    }
+  },
+  "featured": {
+    "title": "Featured Skills",
+    "subtitle": "Top skills by popularity and community engagement"
+  },
+  "owner": {
+    "title": "@{username}'s Skills",
+    "notFound": "Owner not found",
+    "notFoundDescription": "No skills found for @{username}",
+    "browseAll": "Browse all skills",
+    "claimCta": "Is this your repository?",
+    "claimButton": "Claim ownership",
+    "installCta": "Install the most popular skill from this owner:",
+    "stats": {
+      "skills": "{count, plural, one {# skill} other {# skills}}",
+      "downloads": "downloads",
+      "views": "views",
+      "repos": "{count, plural, one {# repo} other {# repos}}"
+    },
+    "sort": {
+      "label": "Sort by",
+      "popularity": "Most popular",
+      "downloads": "Most downloads",
+      "stars": "GitHub stars"
+    },
+    "repo": {
+      "skills": "{count, plural, one {# skill} other {# skills}}",
+      "viewOnGithub": "GitHub",
+      "all": "All repos",
+      "filter": "Repository"
+    },
+    "pagination": {
+      "showing": "Showing {start}-{end} of {total} skills",
+      "page": "Page {current} of {total}"
+    }
+  },
+  "new": {
+    "title": "New Skills",
+    "subtitle": "Recently added skills to the marketplace",
+    "tabs": {
+      "new": "New",
+      "updated": "Updated"
+    },
+    "newDescription": "Skills added in the last 7 days",
+    "updatedDescription": "Skills updated in the last 7 days",
+    "noNewSkills": "No new skills in the last 7 days",
+    "noUpdatedSkills": "No updated skills in the last 7 days"
+  },
+  "auth": {
+    "signIn": "Sign in",
+    "signOut": "Sign out",
+    "favorites": "My Favorites",
+    "manageSkills": "Manage Skills"
+  },
+  "rating": {
+    "title": "Rating",
+    "your": "Your rating",
+    "average": "Average rating",
+    "count": "{count} ratings",
+    "submit": "Submit rating",
+    "update": "Update rating",
+    "loginToRate": "Sign in to rate this skill",
+    "success": "Rating submitted successfully",
+    "error": "Failed to submit rating"
+  },
+  "favorites": {
+    "title": "My Favorites",
+    "subtitle": "Skills you've saved for later",
+    "add": "Add to favorites",
+    "remove": "Remove from favorites",
+    "added": "Added to favorites",
+    "removed": "Removed from favorites",
+    "loginRequired": "Sign in to save favorites",
+    "signIn": "Sign in with GitHub",
+    "empty": {
+      "title": "No favorites yet",
+      "description": "Start exploring and save skills you like",
+      "cta": "Browse Skills"
+    }
+  },
+  "reviews": {
+    "title": "Reviews",
+    "write": "Write a review",
+    "placeholder": "Share your experience with this skill...",
+    "submit": "Submit review",
+    "empty": "No reviews yet. Be the first to review!",
+    "loadMore": "Load more reviews"
+  },
+  "privacy": {
+    "title": "Privacy Policy",
+    "subtitle": "How we handle your data",
+    "lastUpdated": "Last updated: January 2026",
+    "sections": {
+      "dataCollected": {
+        "title": "Data We Collect",
+        "description": "When you sign in with GitHub, we collect your username, email address, and profile picture. We also store your favorites and ratings."
+      },
+      "cookies": {
+        "title": "Cookies & Local Storage",
+        "description": "We use local storage to save your theme preference (light/dark mode). We do not use tracking cookies."
+      },
+      "thirdParty": {
+        "title": "Third-Party Services",
+        "description": "We use GitHub API for authentication and skill indexing. For donations, we use NOWPayments which has its own privacy policy."
+      },
+      "retention": {
+        "title": "Data Retention",
+        "description": "Your account data is kept until you request deletion. You can request deletion of your data at any time through our support page."
+      },
+      "rights": {
+        "title": "Your Rights",
+        "description": "You can request access to, correction of, or deletion of your personal data by contacting us through the support page."
+      },
+      "contact": {
+        "title": "Contact",
+        "description": "For privacy-related questions, please visit our support page or open an issue on GitHub."
+      }
+    }
+  },
+  "terms": {
+    "title": "Terms of Service",
+    "subtitle": "Rules for using SkillHub",
+    "lastUpdated": "Last updated: January 2026",
+    "sections": {
+      "service": {
+        "title": "Service Description",
+        "description": "SkillHub is a marketplace that indexes AI agent skills from public GitHub repositories. We provide discovery, search, and installation tools for these skills."
+      },
+      "responsibilities": {
+        "title": "User Responsibilities",
+        "description": "You are responsible for reviewing the source code of any skill before installing it. Skills are third-party code and you install them at your own risk."
+      },
+      "disclaimer": {
+        "title": "Disclaimer of Warranties",
+        "description": "Skills on SkillHub are provided \"as is\" without any warranty. We scan for known malicious patterns but cannot guarantee the safety or functionality of any skill."
+      },
+      "liability": {
+        "title": "Limitation of Liability",
+        "description": "SkillHub is not liable for any damages resulting from the use of skills indexed on this platform. Use at your own risk."
+      },
+      "takedown": {
+        "title": "DMCA & Takedown",
+        "description": "If you are a repository owner and want your skill removed from SkillHub, please use our claim page to submit a removal request."
+      },
+      "changes": {
+        "title": "Changes to Terms",
+        "description": "We may update these terms from time to time. Continued use of SkillHub after changes constitutes acceptance of the new terms."
+      }
+    }
+  },
+  "claim": {
+    "title": "Manage Skills",
+    "subtitle": "Request to add new skills or remove your existing skills from SkillHub",
+    "loginRequired": "Please sign in with GitHub to manage skills",
+    "signIn": "Sign in with GitHub",
+    "optional": "(optional)",
+    "mirror": {
+      "title": "This feature is available on the main site",
+      "description": "To claim or add skills, please visit the main site.",
+      "button": "Go to main site"
+    },
+    "tabs": {
+      "remove": "Remove Skill",
+      "add": "Add Skill"
+    },
+    "form": {
+      "skillId": "Skill ID",
+      "skillIdPlaceholder": "e.g., your-username/your-repo/skill-name",
+      "skillIdHelp": "Enter the full skill ID as shown on SkillHub",
+      "reason": "Reason for removal",
+      "reasonPlaceholder": "Please explain why you want this skill removed...",
+      "submit": "Submit Request",
+      "submitting": "Verifying ownership..."
+    },
+    "addForm": {
+      "repositoryUrl": "GitHub Repository URL",
+      "repositoryUrlPlaceholder": "https://github.com/owner/repo",
+      "repositoryUrlHelp": "Enter the full URL of the GitHub repository containing the skill",
+      "reason": "Why should this skill be added?",
+      "reasonPlaceholder": "Describe what the skill does and why it would be useful...",
+      "submit": "Submit Request",
+      "submitting": "Validating repository..."
+    },
+    "success": {
+      "title": "Skill Blocked",
+      "description": "Your skill has been blocked from indexing. It will no longer appear in SkillHub.",
+      "viewRequests": "View My Requests"
+    },
+    "addSuccess": {
+      "title": "Request Submitted",
+      "description": "Your skill request has been submitted. SKILL.md was found and will be indexed soon.",
+      "descriptionNoSkillMd": "Your request has been submitted. No SKILL.md file was found - the repository will be reviewed manually. You will receive an email if skills are approved for indexing.",
+      "descriptionMultiplePrefix": "Your request has been submitted. Found ",
+      "descriptionMultipleSuffix": " skills in the repository that will be indexed soon.",
+      "viewRequests": "View My Requests",
+      "foundSkillsIn": "Found skills in:",
+      "root": "(root)",
+      "andMore": "... and {count} more"
+    },
+    "error": {
+      "notOwner": "You are not the owner or admin of this repository. Only repository owners can request removal.",
+      "skillNotFound": "This skill was not found in our database.",
+      "alreadyPending": "You already have a pending request for this item.",
+      "githubError": "Failed to verify repository ownership with GitHub. Please try again later.",
+      "invalidSkill": "This skill does not have valid GitHub repository information.",
+      "invalidUrl": "Please enter a valid GitHub repository URL.",
+      "invalidRepo": "The repository was not found or is not accessible. Please check the URL and ensure the repository is public.",
+      "rateLimitExceeded": "GitHub API rate limit exceeded. Please try again in a few minutes.",
+      "networkTimeout": "Request timed out while checking the repository. Please try again.",
+      "generic": "An error occurred. Please try again."
+    },
+    "myRequests": {
+      "title": "My Requests",
+      "empty": "You haven't submitted any requests yet.",
+      "status": {
+        "pending": "Pending",
+        "approved": "Approved",
+        "rejected": "Rejected",
+        "indexed": "Indexed"
+      },
+      "skillsFoundPrefix": "",
+      "skillsFoundSuffix": " skill(s) found:",
+      "showLess": "Show less",
+      "showAllPrefix": "Show all ",
+      "showAllSuffix": " paths"
+    }
+  },
+  "attribution": {
+    "title": "Attribution",
+    "subtitle": "Acknowledging the sources that make SkillHub possible",
+    "sources": {
+      "title": "Data Sources"
+    },
+    "licenses": {
+      "title": "License Compliance",
+      "description": "All indexed skills retain their original licenses. SkillHub provides metadata and search functionality only. We do not modify or redistribute skill code."
+    },
+    "howItWorks": {
+      "title": "How Indexing Works",
+      "step1": "Our crawler discovers public repositories using multiple strategies: GitHub Code Search, topic-based search, curated awesome-lists, and fork network traversal.",
+      "step2": "We scan for 5 instruction file formats: SKILL.md (Claude), AGENTS.md (Codex), copilot-instructions.md (GitHub Copilot), .cursorrules (Cursor), and .windsurfrules (Windsurf).",
+      "step3": "We extract metadata (name, description, author, license) and run security scans. Non-standard formats are marked as project-specific configurations.",
+      "step4": "Users are linked directly to original repositories for installation and usage. We don't modify or redistribute any code."
+    },
+    "thanks": {
+      "title": "Special Thanks",
+      "subtitle": "We're grateful to these projects and communities"
+    },
+    "rights": {
+      "title": "Your Rights as a Repository Owner",
+      "description": "If you are a repository owner and want your skill removed from SkillHub, you can submit a removal request. We respect author preferences and will honor all legitimate requests.",
+      "claimLink": "Submit a Removal Request"
+    }
+  },
+  "claudePlugin": {
+    "metadata": {
+      "title": "Claude Code Plugin - SkillHub MCP Integration",
+      "description": "Get early access to SkillHub's Claude Code integration. Discover and install skills directly from Claude."
+    },
+    "hero": {
+      "badge": "Coming Soon",
+      "title": "Skills Discovery Inside Claude Code",
+      "subtitleA": "Get early access to our Claude Code plugin. Search {count}+ skills and install them with a single command - all from within Claude.",
+      "subtitleB": "Would you use a Claude Code plugin for skill discovery? Help us prioritize by signing up below."
+    },
+    "stats": {
+      "skills": "Skills Available",
+      "platforms": "AI Platforms",
+      "rating": "Average Rating"
+    },
+    "benefits": {
+      "title": "What You'll Get",
+      "discovery": {
+        "title": "Semantic Search",
+        "description": "Find skills using natural language queries directly in Claude Code."
+      },
+      "install": {
+        "title": "One-Click Install",
+        "description": "Install skills without leaving your conversation. No manual file management."
+      },
+      "instant": {
+        "title": "Instant Activation",
+        "description": "Skills are immediately available after installation. No restart needed."
+      },
+      "secure": {
+        "title": "Security First",
+        "description": "Every skill is scanned for malicious patterns before being made available."
+      }
+    },
+    "howItWorks": {
+      "title": "How It Works",
+      "subtitle": "Natural skill discovery through conversation",
+      "example": {
+        "comment": "Ask Claude to find a skill",
+        "userMessage": "Find me a skill for handling PDF files",
+        "claudeComment": "Claude searches SkillHub via MCP",
+        "result": "→ Found: anthropics/skills/pdf (54.5k ⭐) - PDF manipulation skill"
+      }
+    },
+    "faq": {
+      "title": "Frequently Asked Questions",
+      "q1": {
+        "question": "When will the plugin be available?",
+        "answer": "We're targeting Q1 2026 for the initial release. Early access users will get priority access and the opportunity to provide feedback during beta testing."
+      },
+      "q2": {
+        "question": "Will it work with my existing skills?",
+        "answer": "Yes! The plugin integrates with the standard SKILL.md format used by Claude Code. Your existing skills will continue to work, and you'll be able to discover new ones through SkillHub."
+      },
+      "q3": {
+        "question": "Is it free to use?",
+        "answer": "Yes, the plugin will be completely free and open source, just like the rest of SkillHub. We believe in democratizing access to AI agent skills."
+      }
+    },
+    "cta": {
+      "title": "Explore Skills Now",
+      "description": "While you wait for the plugin, browse our collection of {count}+ skills.",
+      "browseSkills": "Browse Skills",
+      "learnMore": "Learn About Skills"
+    },
+    "form": {
+      "emailPlaceholder": "Enter your email",
+      "ctaA": "Get Early Access",
+      "ctaB": "I'm Interested",
+      "successMessage": "You're on the list!",
+      "successDescription": "We'll notify you when the Claude Code plugin is ready for beta testing.",
+      "invalidEmail": "Please enter a valid email address",
+      "genericError": "Something went wrong. Please try again.",
+      "privacyNote": "We'll only email you about the plugin launch. No spam, ever."
+    }
+  },
+  "mirror": {
+    "text": "You are visiting a mirror of SkillHub.",
+    "link": "Main site"
+  },
+  "banner": {
+    "text": "{count}+ Skills for Claude, Copilot & Codex — Install in Seconds",
+    "feedback": "Feedback",
+    "dismiss": "Dismiss"
+  },
+  "email": {
+    "welcome": {
+      "subject": "Welcome to SkillHub!",
+      "greeting": "Hi {username},",
+      "intro": "Welcome to SkillHub — the open-source marketplace for AI Agent skills. We're glad you're here!",
+      "whatIs": "SkillHub indexes over {count} skills from GitHub that work with Claude, OpenAI Codex, GitHub Copilot, and more.",
+      "getStarted": "Get started:",
+      "browseSkills": "Browse Skills",
+      "installCli": "Install CLI",
+      "docs": "Documentation",
+      "newsletterCta": "Want to stay updated? Subscribe to our newsletter for new skills, features, and tips.",
+      "subscribeLink": "Subscribe to Newsletter"
+    },
+    "newsletter": {
+      "subject": "Welcome to SkillHub Newsletter!",
+      "greeting": "Thanks for subscribing!",
+      "intro": "You're now subscribed to the SkillHub newsletter. You'll receive updates about:",
+      "items": ["New skills added to the marketplace", "Feature updates and improvements", "Tips for using AI agent skills"],
+      "visitUs": "Visit SkillHub",
+      "unsubscribe": "Unsubscribe"
+    },
+    "claim": {
+      "addSubject": "Your skill request has been submitted",
+      "removeSubject": "Your removal request has been processed",
+      "addGreeting": "Your request has been submitted!",
+      "removeGreeting": "Your removal request has been processed!",
+      "addPending": "Your request is now pending review. We'll notify you when it's been processed.",
+      "removeApproved": "The skill has been blocked from indexing and will no longer appear on SkillHub.",
+      "viewRequests": "View My Requests",
+      "approvedSubject": "Your request has been approved",
+      "rejectedSubject": "Update on your request"
+    }
+  }
+}

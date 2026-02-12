@@ -1,0 +1,399 @@
+/* Font import must be at the very top */
+@import url('https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================
+   CSS Variables - Design Tokens
+   ============================================ */
+:root {
+  /* Primary Colors - Sky Blue */
+  --color-primary-50: #f0f9ff;
+  --color-primary-100: #e0f2fe;
+  --color-primary-200: #bae6fd;
+  --color-primary-300: #7dd3fc;
+  --color-primary-400: #38bdf8;
+  --color-primary-500: #66b3e6;
+  --color-primary-600: #0284c7;
+  --color-primary-700: #0369a1;
+  --color-primary-800: #075985;
+  --color-primary-900: #0c4a6e;
+
+  /* Accent - Gold */
+  --color-accent-gold: #f7c150;
+  --color-accent-gold-light: #fbd87a;
+  --color-accent-gold-dark: #d4a43d;
+
+  /* Gradients */
+  --gradient-primary: linear-gradient(135deg, #66b3e6 0%, #3b82f6 100%);
+  --gradient-hero: linear-gradient(180deg, rgba(102, 179, 230, 0.08) 0%, transparent 60%);
+  --gradient-gold: linear-gradient(135deg, #f7c150 0%, #f59e0b 100%);
+
+  /* Text Colors */
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #475569;
+  --color-text-muted: #94a3b8;
+
+  /* Surface Colors */
+  --color-surface: #ffffff;
+  --color-surface-elevated: #ffffff;
+  --color-surface-muted: #f8fafc;
+  --color-surface-subtle: #f1f5f9;
+
+  /* Borders */
+  --color-border: #e2e8f0;
+  --color-border-light: #f1f5f9;
+
+  /* States */
+  --color-success: #22c55e;
+  --color-success-bg: #f0fdf4;
+  --color-warning: #f59e0b;
+  --color-warning-bg: #fffbeb;
+  --color-error: #ef4444;
+  --color-error-bg: #fef2f2;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+
+  /* Animation */
+  --duration-fast: 150ms;
+  --duration-normal: 200ms;
+  --duration-slow: 300ms;
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Spacing */
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 3rem;
+  --space-3xl: 4rem;
+
+  /* Border Radius */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+  --radius-full: 9999px;
+}
+
+/* ============================================
+   Dark Mode Colors
+   ============================================ */
+.dark {
+  /* Primary Colors - Adjusted for dark mode */
+  --color-primary-50: #0c3d5a;
+  --color-primary-100: #0f4c6e;
+  --color-primary-200: #125e87;
+  --color-primary-300: #1c79a8;
+  --color-primary-400: #3b9ac9;
+  --color-primary-500: #66b3e6;
+  --color-primary-600: #8cc7ed;
+  --color-primary-700: #b3dbf5;
+  --color-primary-800: #d9effa;
+  --color-primary-900: #ecf7fd;
+
+  /* Accent - Gold */
+  --color-accent-gold: #f7c150;
+  --color-accent-gold-light: #fbd87a;
+  --color-accent-gold-dark: #c48f30;
+
+  /* Gradients */
+  --gradient-primary: linear-gradient(135deg, #66b3e6 0%, #3b82f6 100%);
+  --gradient-hero: linear-gradient(180deg, rgba(102, 179, 230, 0.15) 0%, transparent 60%);
+
+  /* Text Colors */
+  --color-text-primary: #f1f5f9;
+  --color-text-secondary: #94a3b8;
+  --color-text-muted: #64748b;
+
+  /* Surface Colors */
+  --color-surface: #0f172a;
+  --color-surface-elevated: #1e293b;
+  --color-surface-muted: #1e293b;
+  --color-surface-subtle: #334155;
+
+  /* Borders */
+  --color-border: #334155;
+  --color-border-light: #1e293b;
+
+  /* States */
+  --color-success: #4ade80;
+  --color-success-bg: #14532d;
+  --color-warning: #fbbf24;
+  --color-warning-bg: #78350f;
+  --color-error: #f87171;
+  --color-error-bg: #7f1d1d;
+
+  /* Shadows - Softer for dark mode */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.3);
+}
+
+/* ============================================
+   Font Faces - Vazirmatn (Open Source Persian Font)
+   https://github.com/rastikerdar/vazirmatn
+   Note: @import is at the top of this file
+   ============================================ */
+
+/* ============================================
+   Base Styles
+   ============================================ */
+@layer base {
+  html {
+    @apply antialiased;
+    scroll-behavior: smooth;
+  }
+
+  /* RTL Typography - Persian optimized with Vazirmatn */
+  html[dir="rtl"] {
+    font-family: 'Vazirmatn', system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.8;
+  }
+
+  /* LTR Typography - English */
+  html[dir="ltr"] {
+    font-family: system-ui, 'Vazirmatn', sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+  }
+
+  body {
+    @apply bg-surface text-text-primary;
+  }
+
+  /* Persian headings - slightly tighter line-height */
+  html[dir="rtl"] h1,
+  html[dir="rtl"] h2,
+  html[dir="rtl"] h3 {
+    line-height: 1.4;
+  }
+
+  /* Avoid bold in Persian - use medium weight instead */
+  html[dir="rtl"] strong,
+  html[dir="rtl"] b {
+    font-weight: 500;
+  }
+
+  /* Focus visible for accessibility */
+  :focus-visible {
+    outline: 2px solid var(--color-primary-500);
+    outline-offset: 2px;
+  }
+
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+}
+
+/* ============================================
+   Component Styles
+   ============================================ */
+@layer components {
+  /* Container */
+  .container-main {
+    @apply container mx-auto px-4;
+    max-width: 1200px;
+  }
+
+  /* Primary Button */
+  .btn-primary {
+    @apply inline-flex items-center justify-center;
+    @apply px-6 py-3 rounded-xl;
+    @apply font-medium text-white;
+    @apply transition-all duration-200;
+    background: var(--gradient-primary);
+    box-shadow: 0 4px 15px rgba(102, 179, 230, 0.4);
+    min-height: 44px;
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 179, 230, 0.5);
+  }
+
+  .btn-primary:active {
+    transform: translateY(0);
+  }
+
+  .btn-primary:disabled {
+    @apply opacity-50 cursor-not-allowed;
+    transform: none;
+  }
+
+  /* Secondary Button */
+  .btn-secondary {
+    @apply inline-flex items-center justify-center;
+    @apply px-6 py-3 rounded-xl;
+    @apply font-medium;
+    @apply border-2 border-border;
+    @apply bg-surface text-text-primary;
+    @apply transition-all duration-200;
+    min-height: 44px;
+  }
+
+  .btn-secondary:hover {
+    @apply border-primary-500 text-primary-600 bg-primary-50;
+  }
+
+  /* Ghost Button */
+  .btn-ghost {
+    @apply inline-flex items-center justify-center;
+    @apply px-6 py-3 rounded-xl;
+    @apply font-medium text-text-secondary;
+    @apply transition-all duration-200;
+    @apply bg-transparent;
+    min-height: 44px;
+  }
+
+  .btn-ghost:hover {
+    @apply bg-surface-subtle text-text-primary;
+  }
+
+  /* Card */
+  .card {
+    @apply bg-surface-elevated rounded-2xl;
+    @apply transition-all duration-300;
+    box-shadow: var(--shadow-md);
+  }
+
+  .card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-xl);
+  }
+
+  /* Glass Card */
+  .glass-card {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: var(--radius-2xl);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  }
+
+  .dark .glass-card {
+    background: rgba(30, 41, 59, 0.8);
+    border: 1px solid rgba(51, 65, 85, 0.3);
+  }
+
+  /* Input Field */
+  .input-field {
+    @apply w-full px-4 py-3 rounded-xl;
+    @apply border-2 border-border;
+    @apply bg-surface text-text-primary;
+    @apply transition-all duration-200;
+    @apply placeholder-text-muted;
+    min-height: 44px;
+  }
+
+  .input-field:focus {
+    @apply border-primary-500;
+    @apply outline-none;
+    box-shadow: 0 0 0 3px rgba(102, 179, 230, 0.15);
+  }
+
+  /* Hero Typography */
+  .hero-title {
+    font-size: clamp(2.5rem, 8vw, 4rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    color: var(--color-text-primary);
+  }
+
+  .hero-tagline {
+    font-size: clamp(1rem, 2.5vw, 1.25rem);
+    color: var(--color-primary-500);
+    font-weight: 500;
+  }
+
+  .hero-subtitle {
+    font-size: clamp(1.125rem, 3vw, 1.25rem);
+    color: var(--color-text-secondary);
+    line-height: 1.6;
+  }
+
+  /* Section */
+  .section {
+    @apply py-16 lg:py-24;
+  }
+
+  /* Section following a header - no top padding to avoid double spacing */
+  .section-header + .section,
+  .section.no-top-padding {
+    @apply pt-0;
+  }
+
+  /* Section header - reduced padding for hero/header sections */
+  .section-header {
+    @apply py-12 lg:py-16;
+  }
+
+  .section-title {
+    @apply text-3xl lg:text-4xl font-bold text-center mb-4;
+    color: var(--color-text-primary);
+  }
+
+  .section-subtitle {
+    @apply text-lg text-center max-w-2xl mx-auto;
+    color: var(--color-text-secondary);
+  }
+}
+
+/* ============================================
+   Utility Classes
+   ============================================ */
+@layer utilities {
+  /* Keep numbers LTR in RTL context */
+  .ltr-nums {
+    direction: ltr;
+    unicode-bidi: embed;
+  }
+
+  /* Gradient text */
+  .text-gradient {
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Subtle gradient background */
+  .bg-gradient-subtle {
+    background: var(--gradient-hero);
+  }
+
+  /* Animation delay utilities */
+  .animation-delay-100 { animation-delay: 0.1s; }
+  .animation-delay-200 { animation-delay: 0.2s; }
+  .animation-delay-300 { animation-delay: 0.3s; }
+  .animation-delay-400 { animation-delay: 0.4s; }
+  .animation-delay-500 { animation-delay: 0.5s; }
+
+  /* Line clamp */
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
