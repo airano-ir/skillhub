@@ -58,8 +58,16 @@ export async function indexSkill(
   // Check if we need to update (unless force)
   if (!force) {
     if (existing && existing.contentHash === analysis.meta.contentHash) {
-      console.log(`Skill ${skillId} unchanged, skipping`);
-      return null;
+      // Content unchanged, but check if path/branch changed
+      // (e.g., repo was restructured, file moved to a different directory)
+      const actualBranch = source.branch || content.repoMeta.defaultBranch;
+      if (existing.skillPath !== source.path || existing.branch !== actualBranch) {
+        console.log(`Skill ${skillId} path changed: ${existing.skillPath} → ${source.path}`);
+        // Don't skip - fall through to upsert which now updates skillPath/branch
+      } else {
+        console.log(`Skill ${skillId} unchanged, skipping`);
+        return null;
+      }
     }
   }
 
