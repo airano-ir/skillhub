@@ -1,6 +1,6 @@
 {
   "name": "skillhub",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "CLI tool for managing AI Agent skills - search, install, and update skills for Claude, Codex, Copilot, and more",
   "author": "SkillHub Contributors",
   "license": "MIT",
