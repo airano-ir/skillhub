@@ -103,10 +103,16 @@ export async function install(skillId: string, options: InstallOptions): Promise
             sourceFormat = cachedFiles.sourceFormat as SourceFormat;
           }
           // Convert API response to SkillContent format
-          content = convertCachedFilesToSkillContent(cachedFiles, sourceFormat);
-          spinner.text = cachedFiles.fromCache
-            ? `Using cached files (${cachedFiles.files.length} files)`
-            : `Downloaded ${cachedFiles.files.length} files via API`;
+          const converted = convertCachedFilesToSkillContent(cachedFiles, sourceFormat);
+          // Only use API result if the main instruction file was found
+          if (converted.skillMd) {
+            content = converted;
+            spinner.text = cachedFiles.fromCache
+              ? `Using cached files (${cachedFiles.files.length} files)`
+              : `Downloaded ${cachedFiles.files.length} files via API`;
+          } else {
+            spinner.text = 'API returned files but main instruction file missing, falling back...';
+          }
         }
       } catch {
         // API was reachable but file fetch failed (timeout, server error, etc.)

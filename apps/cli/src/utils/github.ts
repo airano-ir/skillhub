@@ -100,12 +100,26 @@ export async function fetchSkillContent(
     }
   } else {
     // SKILL.md - try multiple common paths
-    pathsToTry = [
-      basePath,
-      ...(skillPath && !skillPath.startsWith('skills/') ? [`skills/${skillPath}/SKILL.md`] : []),
-      ...(skillPath && !skillPath.startsWith('.claude/') ? [`.claude/skills/${skillPath}/SKILL.md`] : []),
-      ...(skillPath && !skillPath.startsWith('.github/') ? [`.github/skills/${skillPath}/SKILL.md`] : []),
-    ];
+    // Extract the leaf skill name to avoid duplicate prefixes
+    // e.g., "skills/claude-md-architect" → "claude-md-architect"
+    const skillName = skillPath
+      ? skillPath.replace(/^(skills|\.claude\/skills|\.github\/skills)\//, '')
+      : '';
+
+    pathsToTry = [basePath];
+    if (skillName) {
+      // Add all common locations, deduplicating against basePath
+      const candidates = [
+        `skills/${skillName}/${filename}`,
+        `.claude/skills/${skillName}/${filename}`,
+        `.github/skills/${skillName}/${filename}`,
+      ];
+      for (const candidate of candidates) {
+        if (candidate !== basePath) {
+          pathsToTry.push(candidate);
+        }
+      }
+    }
   }
 
   for (const pathToTry of pathsToTry) {
@@ -123,7 +137,6 @@ export async function fetchSkillContent(
       if (error.message?.includes('timeout') || error.message?.includes('network')) {
         try {
           const rawContent = await fetchRawFile(owner, repo, pathToTry, branch);
-          // Create a mock response compatible with Octokit
           skillMdResponse = {
             data: {
               content: Buffer.from(rawContent).toString('base64'),
@@ -131,22 +144,51 @@ export async function fetchSkillContent(
             }
           } as any;
           break;
-        } catch (rawError) {
-          // If raw fetch also fails, throw original error
-          throw new Error(`GitHub API timeout. Try using --no-api flag or check your network connection.`);
+        } catch {
+          // Raw fetch also failed, continue to next path
+          continue;
         }
       }
       // If 404, try next path
       if (error.status === 404) {
         continue;
       }
+      // Rate limiting - provide a clear error
+      if (error.status === 403) {
+        throw new Error(
+          `GitHub API rate limit exceeded. Set GITHUB_TOKEN environment variable for higher rate limits.`
+        );
+      }
       // Other errors, throw immediately
       throw new Error(`Failed to fetch from GitHub: ${error.message}`);
     }
   }
 
+  // If Octokit failed on all paths, try raw.githubusercontent.com as last resort
+  // (handles cases where GitHub API returns 404 but raw CDN has the file,
+  //  e.g., during API caching delays or edge cases)
   if (!skillMdResponse) {
-    throw new Error(`${filename} not found at ${owner}/${repo} (tried ${pathsToTry.length} paths)`);
+    for (const pathToTry of pathsToTry) {
+      try {
+        const rawContent = await fetchRawFile(owner, repo, pathToTry, branch);
+        skillMdResponse = {
+          data: {
+            content: Buffer.from(rawContent).toString('base64'),
+            encoding: 'base64' as const,
+          }
+        } as any;
+        break;
+      } catch {
+        continue;
+      }
+    }
+  }
+
+  if (!skillMdResponse) {
+    const triedPaths = pathsToTry.map(p => `  - ${owner}/${repo}/${p}`).join('\n');
+    throw new Error(
+      `${filename} not found at ${owner}/${repo} (tried ${pathsToTry.length} paths):\n${triedPaths}\n\nThe skill may have been moved or deleted from the repository.`
+    );
   }
 
   if (!('content' in skillMdResponse.data)) {
