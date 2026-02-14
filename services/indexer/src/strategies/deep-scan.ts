@@ -17,12 +17,8 @@ export class DeepScanCrawler {
     this.octokitPool = new OctokitPool(this.tokenManager);
   }
 
-  private async getOctokit(): Promise<Octokit> {
+  private async getOctokit(): Promise<{ octokit: Octokit; token: string }> {
     return this.octokitPool.getBestInstance();
-  }
-
-  private getCurrentToken(): string {
-    return this.tokenManager.getBestToken();
   }
 
   /**
@@ -34,8 +30,7 @@ export class DeepScanCrawler {
 
     try {
       // Get repository info for default branch
-      const octokit = await this.getOctokit();
-      const token = this.getCurrentToken();
+      const { octokit, token } = await this.getOctokit();
       const repoInfo = await octokit.repos.get({ owner, repo });
       this.octokitPool.updateStats(token, repoInfo.headers);
 
@@ -101,8 +96,21 @@ export class DeepScanCrawler {
         console.log(`  Repository ${owner}/${repo} is too large, using fallback scan`);
         return this.fallbackScan(owner, repo);
       }
+      if (this.isRateLimitError(error)) {
+        console.log(`  Rate limit hit scanning ${owner}/${repo}, waiting for token rotation...`);
+        await this.tokenManager.checkAndRotate();
+        // Retry once after rotation
+        return this.scanRepository(owner, repo);
+      }
       throw error;
     }
+  }
+
+  private isRateLimitError(error: unknown): boolean {
+    if (!(error instanceof Error)) return false;
+    const status = (error as { status?: number }).status;
+    if (status === 403 || status === 429) return true;
+    return error.message.includes('rate limit') || error.message.includes('secondary rate limit');
   }
 
   /**
@@ -114,8 +122,7 @@ export class DeepScanCrawler {
 
     for (const basePath of knownPaths) {
       try {
-        const octokit = await this.getOctokit();
-        const token = this.getCurrentToken();
+        const { octokit, token } = await this.getOctokit();
 
         const response = await octokit.repos.getContent({
           owner,
@@ -143,8 +150,7 @@ export class DeepScanCrawler {
         const dirs = response.data.filter((item) => item.type === 'dir');
         for (const dir of dirs) {
           try {
-            const subOctokit = await this.getOctokit();
-            const subToken = this.getCurrentToken();
+            const { octokit: subOctokit, token: subToken } = await this.getOctokit();
             const subDir = await subOctokit.repos.getContent({
               owner,
               repo,
@@ -223,8 +229,7 @@ export class DeepScanCrawler {
    */
   async getFileContent(owner: string, repo: string, path: string): Promise<string | null> {
     try {
-      const octokit = await this.getOctokit();
-      const token = this.getCurrentToken();
+      const { octokit, token } = await this.getOctokit();
       const response = await octokit.repos.getContent({
         owner,
         repo,

@@ -221,7 +221,16 @@ async function main() {
     case 'discover-repos': {
       console.log('Running all discovery strategies...\n');
       const discoverDb = createDb(process.env.DATABASE_URL);
+      const discoverBudgetCrawler = createCrawler();
       const orchestrator = createStrategyOrchestrator();
+
+      // Check budget before starting (reserve 20% for website users)
+      const discoverBudget = await discoverBudgetCrawler.checkBudget(0.20);
+      console.log(`API Budget: ${discoverBudget.remaining}/${discoverBudget.limit} remaining (reserve 20%)`);
+      if (!discoverBudget.ok) {
+        console.log(`\nAPI budget too low. Waiting for reset...`);
+        await discoverBudgetCrawler.waitForBudget(0.20);
+      }
 
       const { repos: discoveredRepos, stats: discoverStats } = await orchestrator.runAllStrategies();
 
@@ -249,7 +258,16 @@ async function main() {
     case 'awesome-lists': {
       console.log('Running awesome list discovery...\n');
       const awesomeDb = createDb(process.env.DATABASE_URL);
+      const awesomeBudgetCrawler = createCrawler();
       const awesomeCrawler = createAwesomeListCrawler();
+
+      // Check budget before starting (reserve 20% for website users)
+      const awesomeBudget = await awesomeBudgetCrawler.checkBudget(0.20);
+      console.log(`API Budget: ${awesomeBudget.remaining}/${awesomeBudget.limit} remaining (reserve 20%)`);
+      if (!awesomeBudget.ok) {
+        console.log(`\nAPI budget too low. Waiting for reset...`);
+        await awesomeBudgetCrawler.waitForBudget(0.20);
+      }
 
       // Save known lists to DB
       for (const list of awesomeCrawler.getKnownLists()) {
@@ -297,6 +315,18 @@ async function main() {
       const deepCrawler = createDeepScanCrawler();
       const skillCrawler = createCrawler();
 
+      // Parse budget option (default 20% reserve for website users)
+      const deepBudgetArg = process.argv.find(a => a.startsWith('--budget='));
+      const deepBudgetPct = deepBudgetArg ? parseInt(deepBudgetArg.split('=')[1]) / 100 : 0.20;
+
+      // Check initial budget
+      const deepInitialBudget = await skillCrawler.checkBudget(deepBudgetPct);
+      console.log(`API Budget: ${deepInitialBudget.remaining}/${deepInitialBudget.limit} remaining (reserve ${Math.round(deepBudgetPct * 100)}%)`);
+      if (!deepInitialBudget.ok) {
+        console.log(`\nAPI budget too low. Waiting for reset...`);
+        await skillCrawler.waitForBudget(deepBudgetPct);
+      }
+
       // Get repos that need scanning (never scanned or stale)
       const oneWeekAgo = new Date();
       oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
@@ -307,13 +337,22 @@ async function main() {
         break;
       }
 
-      console.log(`Found ${reposToScan.length} repositories to scan`);
+      console.log(`Found ${reposToScan.length} repositories to scan\n`);
 
       let scannedCount = 0;
       let skillsDiscovered = 0;
       let skillsIndexed = 0;
 
       for (const repo of reposToScan) {
+        // Check budget every 10 repos
+        if (scannedCount > 0 && scannedCount % 10 === 0) {
+          const midBudget = await skillCrawler.checkBudget(deepBudgetPct);
+          if (!midBudget.ok) {
+            console.log(`\n  Budget low (${midBudget.remaining}/${midBudget.limit}). Pausing for reset...`);
+            await skillCrawler.waitForBudget(deepBudgetPct);
+          }
+        }
+
         try {
           console.log(`\nScanning ${repo.owner}/${repo.repo}...`);
           const skills = await deepCrawler.scanRepository(repo.owner, repo.repo);
@@ -366,6 +405,10 @@ async function main() {
           await discoveredRepoQueries.markScanned(deepDb, repo.id, 0, false, String(error));
         }
       }
+
+      // Show final API status
+      const deepFinalBudget = await skillCrawler.checkBudget(deepBudgetPct);
+      console.log(`\n  API remaining: ${deepFinalBudget.remaining}/${deepFinalBudget.limit}`);
 
       console.log(`\nDeep scan complete:`);
       console.log(`  Repositories scanned: ${scannedCount}`);
@@ -494,6 +537,15 @@ async function main() {
     case 'full-enhanced': {
       console.log('Running full enhanced crawl (discovery + scan + index)...\n');
       const enhancedDb = createDb(process.env.DATABASE_URL);
+      const enhancedBudgetCrawler = createCrawler();
+
+      // Check budget before starting (reserve 20% for website users)
+      const enhancedBudget = await enhancedBudgetCrawler.checkBudget(0.20);
+      console.log(`API Budget: ${enhancedBudget.remaining}/${enhancedBudget.limit} remaining (reserve 20%)\n`);
+      if (!enhancedBudget.ok) {
+        console.log(`API budget too low. Waiting for reset...`);
+        await enhancedBudgetCrawler.waitForBudget(0.20);
+      }
 
       // Step 1: Run all discovery strategies
       console.log('Step 1: Running discovery strategies...');

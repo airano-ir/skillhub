@@ -24,12 +24,8 @@ export class ForkNetworkCrawler {
     this.octokitPool = new OctokitPool(this.tokenManager);
   }
 
-  private async getOctokit(): Promise<Octokit> {
+  private async getOctokit(): Promise<{ octokit: Octokit; token: string }> {
     return this.octokitPool.getBestInstance();
-  }
-
-  private getCurrentToken(): string {
-    return this.tokenManager.getBestToken();
   }
 
   /**
@@ -41,8 +37,7 @@ export class ForkNetworkCrawler {
 
     while (page <= maxPages) {
       try {
-        const octokit = await this.getOctokit();
-        const token = this.getCurrentToken();
+        const { octokit, token } = await this.getOctokit();
 
         const response = await octokit.repos.listForks({
           owner,
@@ -121,8 +116,7 @@ export class ForkNetworkCrawler {
    */
   async getParentRepo(owner: string, repo: string): Promise<{ owner: string; repo: string } | null> {
     try {
-      const octokit = await this.getOctokit();
-      const token = this.getCurrentToken();
+      const { octokit, token } = await this.getOctokit();
       const response = await octokit.repos.get({ owner, repo });
       this.octokitPool.updateStats(token, response.headers);
 
@@ -152,8 +146,7 @@ export class ForkNetworkCrawler {
 
     // Add root repo
     try {
-      const octokit = await this.getOctokit();
-      const token = this.getCurrentToken();
+      const { octokit, token } = await this.getOctokit();
       const rootInfo = await octokit.repos.get({ owner: rootOwner, repo: rootRepo });
       this.octokitPool.updateStats(token, rootInfo.headers);
 

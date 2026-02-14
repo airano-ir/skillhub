@@ -29,9 +29,9 @@ export class OctokitPool {
     return instance;
   }
 
-  async getBestInstance(): Promise<Octokit> {
+  async getBestInstance(): Promise<{ octokit: Octokit; token: string }> {
     const token = await this.tokenManager.checkAndRotate();
-    return this.getInstance(token);
+    return { octokit: this.getInstance(token), token };
   }
 
   updateStats(token: string, headers: Record<string, unknown>): void {

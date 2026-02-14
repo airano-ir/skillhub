@@ -32,7 +32,7 @@ export class AwesomeListCrawler {
     this.octokitPool = new OctokitPool(this.tokenManager);
   }
 
-  private async getOctokit(): Promise<Octokit> {
+  private async getOctokit(): Promise<{ octokit: Octokit; token: string }> {
     return this.octokitPool.getBestInstance();
   }
 
@@ -73,7 +73,7 @@ export class AwesomeListCrawler {
     readmePath = 'README.md'
   ): Promise<RepoReference[]> {
     try {
-      const octokit = await this.getOctokit();
+      const { octokit } = await this.getOctokit();
       const response = await octokit.repos.getContent({
         owner,
         repo,
@@ -165,7 +165,7 @@ export class AwesomeListCrawler {
 
     for (const query of searchQueries) {
       try {
-        const octokit = await this.getOctokit();
+        const { octokit } = await this.getOctokit();
         const response = await octokit.search.repos({
           q: query,
           sort: 'stars',

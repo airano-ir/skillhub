@@ -53,7 +53,7 @@ export class TokenManager {
     });
   }
 
-  private async refreshAllTokens(): Promise<void> {
+  async refreshAllTokens(): Promise<void> {
     for (const tokenInfo of this.tokens) {
       await this.refreshRateLimit(tokenInfo.token);
     }
@@ -135,7 +135,7 @@ export class TokenManager {
 
     if (typeof remaining === 'string') {
       tokenInfo.remaining = parseInt(remaining, 10);
-      tokenInfo.isExhausted = tokenInfo.remaining < 10;
+      tokenInfo.isExhausted = tokenInfo.remaining < 2;
     }
     if (typeof reset === 'string') {
       tokenInfo.reset = parseInt(reset, 10) * 1000;
@@ -174,8 +174,8 @@ export class TokenManager {
       );
       await new Promise((resolve) => setTimeout(resolve, waitTime));
 
-      // Refresh rate limit after waiting
-      await this.refreshRateLimit(current);
+      // Refresh ALL tokens after waiting (others may have reset too)
+      await this.refreshAllTokens();
     }
 
     return current;
@@ -201,7 +201,7 @@ export class TokenManager {
       tokenInfo.remaining = core.remaining;
       tokenInfo.reset = core.reset * 1000;
       tokenInfo.limit = core.limit;
-      tokenInfo.isExhausted = core.remaining < 10;
+      tokenInfo.isExhausted = core.remaining < 2;
 
       console.log(
         `[${tokenInfo.name}] Refreshed: ${core.remaining}/${core.limit} (resets at ${new Date(tokenInfo.reset).toLocaleTimeString()})`

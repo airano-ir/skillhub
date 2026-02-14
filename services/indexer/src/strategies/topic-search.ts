@@ -96,12 +96,8 @@ export class TopicSearchCrawler {
     this.octokitPool = new OctokitPool(this.tokenManager);
   }
 
-  private async getOctokit(): Promise<Octokit> {
+  private async getOctokit(): Promise<{ octokit: Octokit; token: string }> {
     return this.octokitPool.getBestInstance();
-  }
-
-  private getCurrentToken(): string {
-    return this.tokenManager.getBestToken();
   }
 
   /**
@@ -117,8 +113,7 @@ export class TopicSearchCrawler {
       try {
         console.log(`  Searching topic: ${topic}`);
 
-        const octokit = await this.getOctokit();
-        const token = this.getCurrentToken();
+        const { octokit, token } = await this.getOctokit();
         const response = await octokit.search.repos({
           q: `topic:${topic}`,
           sort: 'stars',
@@ -175,8 +170,7 @@ export class TopicSearchCrawler {
       try {
         console.log(`  Query: ${query}`);
 
-        const octokit = await this.getOctokit();
-        const token = this.getCurrentToken();
+        const { octokit, token } = await this.getOctokit();
         const response = await octokit.search.repos({
           q: query,
           sort: 'stars',
@@ -232,8 +226,7 @@ export class TopicSearchCrawler {
 
     for (let page = 2; page <= maxPages; page++) {
       try {
-        const octokit = await this.getOctokit();
-        const token = this.getCurrentToken();
+        const { octokit, token } = await this.getOctokit();
 
         const response = await octokit.search.repos({
           q: query,

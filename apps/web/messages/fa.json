@@ -33,7 +33,7 @@
     "docs": "مستندات",
     "about": "درباره ما",
     "github": "گیت‌هاب",
-    "sourceCode": "کد منبع (به زودی)",
+    "sourceCode": "کد منبع",
     "sourceCodeShort": "کد منبع",
     "switchLanguage": "تغییر به انگلیسی"
   },
@@ -203,7 +203,7 @@
       "attribution": "تقدیر و تشکر",
       "manageSkills": "مدیریت مهارت‌ها"
     },
-    "sourceCode": "کد منبع (به زودی)",
+    "sourceCode": "کد منبع",
     "copyright": "© {year} SkillHub. کد متن‌باز تحت مجوز MIT."
   },
   "about": {

@@ -33,7 +33,7 @@
     "docs": "Docs",
     "about": "About",
     "github": "GitHub",
-    "sourceCode": "Source Code (Coming Soon)",
+    "sourceCode": "Source Code",
     "sourceCodeShort": "Source Code",
     "switchLanguage": "Switch to Farsi"
   },
@@ -203,7 +203,7 @@
       "attribution": "Attribution",
       "manageSkills": "Manage Skills"
     },
-    "sourceCode": "Source Code (Coming Soon)",
+    "sourceCode": "Source Code",
     "copyright": "© {year} SkillHub. Open source under MIT license."
   },
   "about": {

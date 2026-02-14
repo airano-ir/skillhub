@@ -109,12 +109,8 @@ export class GitHubCrawler {
     this.lastCodeSearchTime = Date.now();
   }
 
-  private async getOctokit(): Promise<Octokit> {
+  private async getOctokit(): Promise<{ octokit: Octokit; token: string }> {
     return this.octokitPool.getBestInstance();
-  }
-
-  private getCurrentToken(): string {
-    return this.tokenManager.getBestToken();
   }
 
   /**
@@ -168,8 +164,7 @@ export class GitHubCrawler {
       const branch = repoMeta.defaultBranch;
 
       // List contents of skills directory
-      const octokit = await this.getOctokit();
-      const token = this.getCurrentToken();
+      const { octokit, token } = await this.getOctokit();
       const response = await octokit.repos.getContent({
         owner,
         repo,
@@ -221,8 +216,7 @@ export class GitHubCrawler {
    */
   private async checkFileExists(owner: string, repo: string, path: string, ref: string): Promise<boolean> {
     try {
-      const octokit = await this.getOctokit();
-      const token = this.getCurrentToken();
+      const { octokit, token } = await this.getOctokit();
       const response = await octokit.repos.getContent({
         owner,
         repo,
@@ -319,8 +313,7 @@ export class GitHubCrawler {
         // Enforce code search secondary rate limit delay
         await this.waitForCodeSearchSlot();
 
-        const octokit = await this.getOctokit();
-        const token = this.getCurrentToken();
+        const { octokit, token } = await this.getOctokit();
         const response = await octokit.search.code({
           q: query,
           per_page: perPage,
@@ -440,8 +433,7 @@ export class GitHubCrawler {
    * Get repository metadata
    */
   async getRepoMetadata(owner: string, repo: string): Promise<RepoMetadata> {
-    const octokit = await this.getOctokit();
-    const token = this.getCurrentToken();
+    const { octokit, token } = await this.getOctokit();
     const response = await octokit.repos.get({ owner, repo });
     this.octokitPool.updateStats(token, response.headers);
 
@@ -463,8 +455,7 @@ export class GitHubCrawler {
   async fetchOwnerEmail(username: string): Promise<{ email: string | null; source: string | null }> {
     try {
       // Step 1: GitHub Profile API
-      const octokit = await this.getOctokit();
-      const token = this.getCurrentToken();
+      const { octokit, token } = await this.getOctokit();
       const userResponse = await octokit.users.getByUsername({ username });
       this.octokitPool.updateStats(token, userResponse.headers);
 
@@ -524,8 +515,7 @@ export class GitHubCrawler {
     ref: string
   ): Promise<string> {
     try {
-      const octokit = await this.getOctokit();
-      const token = this.getCurrentToken();
+      const { octokit, token } = await this.getOctokit();
       const response = await octokit.repos.getContent({
         owner,
         repo,
@@ -558,8 +548,7 @@ export class GitHubCrawler {
     ref: string
   ): Promise<FileInfo[]> {
     try {
-      const octokit = await this.getOctokit();
-      const token = this.getCurrentToken();
+      const { octokit, token } = await this.getOctokit();
       const response = await octokit.repos.getContent({
         owner,
         repo,
