@@ -164,7 +164,7 @@ export const skillQueries = {
             ? and(eq(skillCategories.categoryId, category), ...conditions)
             : eq(skillCategories.categoryId, category)
         )
-        .orderBy(primaryOrder, desc(secondaryColumn))
+        .orderBy(primaryOrder, desc(secondaryColumn), asc(skills.id))
         .limit(limit)
         .offset(offset);
 
@@ -175,7 +175,7 @@ export const skillQueries = {
       .select()
       .from(skills)
       .where(conditions.length > 0 ? and(...conditions) : undefined)
-      .orderBy(primaryOrder, desc(secondaryColumn))
+      .orderBy(primaryOrder, desc(secondaryColumn), asc(skills.id))
       .limit(limit)
       .offset(offset);
 
