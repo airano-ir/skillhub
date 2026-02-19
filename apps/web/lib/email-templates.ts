@@ -220,12 +220,12 @@ export function buildWelcomeEmail(locale: Locale, username: string, email?: stri
   const dir = getDir(locale);
   const align = getAlign(locale);
 
-  // Format skill count: dynamic if provided, fallback to "172,000+"
+  // Format skill count: dynamic if provided, fallback to "16,000+"
   const skillCountStr = totalSkillCount
     ? (locale === 'fa'
       ? totalSkillCount.toLocaleString('fa-IR')
       : totalSkillCount.toLocaleString('en-US'))
-    : (locale === 'fa' ? '۱۷۲,۰۰۰' : '172,000');
+    : (locale === 'fa' ? '۱۶,۰۰۰' : '16,000');
 
   const body = `
     <h1 style="margin: 0 0 16px 0; color: ${COLORS.text}; font-size: 24px; text-align: ${align};">

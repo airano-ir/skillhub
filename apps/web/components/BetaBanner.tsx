@@ -35,7 +35,7 @@ export function BetaBanner() {
 
   if (!isVisible) return null;
 
-  const count = skillCount || (locale === 'fa' ? '۱۷۲k' : '172k');
+  const count = skillCount || (locale === 'fa' ? '۱۶k' : '16k');
 
   return (
     <div className="relative bg-gradient-to-r from-primary-600 to-primary-500 text-white">

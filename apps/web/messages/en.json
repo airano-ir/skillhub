@@ -47,10 +47,11 @@
       "ctaSecondary": "Getting Started"
     },
     "stats": {
-      "skills": "Skills",
+      "skills": "Curated Skills",
       "downloads": "Downloads",
       "contributors": "Contributors",
-      "categories": "Categories"
+      "categories": "Categories",
+      "curationNote": "Every skill is deduplicated and quality-filtered from {totalIndexed}+ indexed repositories"
     },
     "featured": {
       "title": "Featured Skills",

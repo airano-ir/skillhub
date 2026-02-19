@@ -14,10 +14,11 @@ async function getSkillCount(): Promise<string> {
     const db = createDb();
     const result = await db
       .select({ count: sql<number>`count(*)::int` })
-      .from(skills);
-    return formatPromptSkillCount(result[0]?.count ?? 170000);
+      .from(skills)
+      .where(sql`${skills.isDuplicate} = false AND (${skills.skillType} IS NULL OR ${skills.skillType} != 'aggregator')`);
+    return formatPromptSkillCount(result[0]?.count ?? 16000);
   } catch {
-    return '170,000+';
+    return '16,000+';
   }
 }
 

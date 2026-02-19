@@ -1129,6 +1129,86 @@ export const categoryQueries = {
 };
 
 /**
+ * Post-crawl curation: lightweight classification and dedup
+ * Runs automatically after each crawl to classify new skills
+ */
+export async function runPostCrawlCuration(db: DB): Promise<{ classified: number; duplicates: number; categoryCounts: number }> {
+  console.log('[curation] Running post-crawl curation...');
+  const results = { classified: 0, duplicates: 0, categoryCounts: 0 };
+
+  // Step 1: Update repo_skill_count for skills that don't have it
+  await db.execute(sql`
+    UPDATE skills s SET repo_skill_count = sub.cnt
+    FROM (
+      SELECT github_owner, github_repo, COUNT(*)::int AS cnt
+      FROM skills WHERE is_blocked = false
+      GROUP BY github_owner, github_repo
+    ) sub
+    WHERE s.github_owner = sub.github_owner
+      AND s.github_repo = sub.github_repo
+      AND (s.repo_skill_count IS NULL OR s.repo_skill_count != sub.cnt)
+  `);
+
+  // Step 2: Mark aggregators (repos with 50+ skills)
+  await db.execute(sql`
+    UPDATE skills SET skill_type = 'aggregator'
+    WHERE repo_skill_count >= 50
+      AND (skill_type IS NULL OR skill_type != 'aggregator')
+      AND is_blocked = false
+  `);
+
+  // Step 3: Classify remaining unclassified skills
+  const classResult = await db.execute(sql`
+    UPDATE skills SET skill_type = CASE
+      WHEN repo_skill_count = 1 THEN 'standalone'
+      WHEN repo_skill_count BETWEEN 2 AND 49 THEN 'collection'
+      ELSE 'standalone'
+    END
+    WHERE skill_type IS NULL
+      AND is_blocked = false
+      AND repo_skill_count IS NOT NULL
+  `);
+  results.classified = (classResult as unknown as { rowCount: number }).rowCount ?? 0;
+
+  // Step 4: Mark duplicates by content_hash (keep canonical = most stars)
+  const dupResult = await db.execute(sql`
+    UPDATE skills s SET is_duplicate = true
+    WHERE s.is_blocked = false
+      AND s.is_duplicate = false
+      AND s.content_hash IS NOT NULL
+      AND EXISTS (
+        SELECT 1 FROM skills s2
+        WHERE s2.content_hash = s.content_hash
+          AND s2.is_blocked = false
+          AND s2.id != s.id
+          AND (s2.github_stars > s.github_stars
+               OR (s2.github_stars = s.github_stars AND s2.indexed_at < s.indexed_at))
+      )
+  `);
+  results.duplicates = (dupResult as unknown as { rowCount: number }).rowCount ?? 0;
+
+  // Step 5: Recalculate category counts (browse-ready only)
+  const catResult = await db.execute(sql`
+    UPDATE categories c SET skill_count = sub.cnt
+    FROM (
+      SELECT sc.category_id, COUNT(*)::int AS cnt
+      FROM skill_categories sc
+      JOIN skills s ON sc.skill_id = s.id
+      WHERE s.is_blocked = false
+        AND s.is_duplicate = false
+        AND (s.skill_type IS NULL OR s.skill_type != 'aggregator')
+      GROUP BY sc.category_id
+    ) sub
+    WHERE c.id = sub.category_id
+      AND c.skill_count IS DISTINCT FROM sub.cnt
+  `);
+  results.categoryCounts = (catResult as unknown as { rowCount: number }).rowCount ?? 0;
+
+  console.log(`[curation] Done: ${results.classified} classified, ${results.duplicates} new duplicates, ${results.categoryCounts} category counts updated`);
+  return results;
+}
+
+/**
  * User queries
  */
 export const userQueries = {

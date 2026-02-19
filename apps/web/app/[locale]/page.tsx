@@ -44,11 +44,19 @@ async function getStats() {
       .where(browseReady);
     const totalContributors = contributorsResult[0]?.count ?? 0;
 
+    // Get total indexed skills (all, before curation) for curation note
+    const totalIndexedResult = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(skills)
+      .where(sql`${skills.isBlocked} = false`);
+    const totalIndexed = totalIndexedResult[0]?.count ?? 0;
+
     return {
       totalSkills,
       totalDownloads,
       totalCategories,
       totalContributors,
+      totalIndexed,
       platforms: 5,
     };
   } catch (error) {
@@ -186,6 +194,9 @@ export default async function HomePage({
                 </div>
               ))}
             </div>
+            <p className="text-center text-text-muted text-sm mt-6">
+              {t('stats.curationNote', { totalIndexed: formatCompactNumber(statsData?.totalIndexed ?? 0, locale) })}
+            </p>
           </div>
         </section>
 

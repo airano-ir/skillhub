@@ -1,7 +1,7 @@
 import type { Job } from 'bullmq';
 import { Worker } from 'bullmq';
 import pLimit from 'p-limit';
-import { createDb, type Database, discoveredRepoQueries, awesomeListQueries, addRequestQueries, skillQueries, sql } from '@skillhub/db';
+import { createDb, type Database, discoveredRepoQueries, awesomeListQueries, addRequestQueries, skillQueries, runPostCrawlCuration, sql } from '@skillhub/db';
 import { GitHubCrawler, createCrawler } from './crawler.js';
 import type { IndexJobData, IndexJobResult } from './queue.js';
 import { setupRecurringJobs } from './queue.js';
@@ -167,6 +167,15 @@ async function processFullCrawl(
   );
 
   await Promise.all(indexPromises);
+
+  // Post-crawl curation: classify new skills, mark duplicates, update category counts
+  try {
+    const db = getDb();
+    await runPostCrawlCuration(db);
+  } catch (error) {
+    console.error('[curation] Post-crawl curation failed (non-fatal):', error);
+  }
+
   await job.updateProgress(100);
 
   return {
@@ -224,6 +233,15 @@ async function processIncrementalCrawl(
   );
 
   await Promise.all(indexPromises);
+
+  // Post-crawl curation: classify new skills, mark duplicates, update category counts
+  try {
+    const db = getDb();
+    await runPostCrawlCuration(db);
+  } catch (error) {
+    console.error('[curation] Post-crawl curation failed (non-fatal):', error);
+  }
+
   await job.updateProgress(100);
 
   return {

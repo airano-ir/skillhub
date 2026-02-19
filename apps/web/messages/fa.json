@@ -47,10 +47,11 @@
       "ctaSecondary": "راهنمای شروع"
     },
     "stats": {
-      "skills": "مهارت",
+      "skills": "مهارت برگزیده",
       "downloads": "دانلود",
       "contributors": "مشارکت‌کننده",
-      "categories": "دسته‌بندی"
+      "categories": "دسته‌بندی",
+      "curationNote": "هر مهارت از میان {totalIndexed}+ مخزن ایندکس‌شده، حذف تکراری و فیلتر کیفیت شده است"
     },
     "featured": {
       "title": "مهارت‌های ویژه",
