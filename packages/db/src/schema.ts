@@ -67,6 +67,19 @@ export const skills = pgTable(
     isBlocked: boolean('is_blocked').default(false), // Blocked from re-indexing (owner requested removal)
     lastScanned: timestamp('last_scanned'),
 
+    // Curation (populated by batch scripts, not crawler)
+    qualityScore: integer('quality_score'), // 0-100 from analyzer
+    qualityDetails: jsonb('quality_details').$type<{
+      documentation: number;
+      maintenance: number;
+      popularity: number;
+      factors: Array<{ name: string; score: number; weight: number; details?: string }>;
+    }>(),
+    skillType: text('skill_type').$type<'standalone' | 'project-bound' | 'collection' | 'aggregator'>(),
+    isDuplicate: boolean('is_duplicate').default(false),
+    canonicalSkillId: text('canonical_skill_id'), // points to the "original" if this is a duplicate
+    repoSkillCount: integer('repo_skill_count'), // cached count of skills in same repo
+
     // Content (cached)
     contentHash: text('content_hash'),
     rawContent: text('raw_content'),
@@ -103,6 +116,10 @@ export const skills = pgTable(
     updatedIdx: index('idx_skills_updated').on(table.updatedAt),
     sourceFormatIdx: index('idx_skills_source_format').on(table.sourceFormat),
     lastDownloadedIdx: index('idx_skills_last_downloaded').on(table.lastDownloadedAt),
+    qualityIdx: index('idx_skills_quality').on(table.qualityScore),
+    skillTypeIdx: index('idx_skills_type').on(table.skillType),
+    duplicateIdx: index('idx_skills_duplicate').on(table.isDuplicate),
+    contentHashIdx: index('idx_skills_content_hash').on(table.contentHash),
   })
 );
 

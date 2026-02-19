@@ -348,6 +348,7 @@ BEGIN
     -- Excluded: cached_files (download cache, not content change)
     -- Excluded: indexed_at, last_scanned (indexer bookkeeping)
     -- Excluded: github_stars, github_forks (popularity metrics, not content)
+    -- Excluded: quality_score, quality_details, skill_type, is_duplicate, canonical_skill_id, repo_skill_count (curation metadata)
     IF ROW(NEW.name, NEW.description, NEW.github_owner, NEW.github_repo, NEW.skill_path,
            NEW.branch, NEW.commit_sha, NEW.source_format, NEW.version, NEW.license, NEW.author, NEW.homepage,
            NEW.compatibility, NEW.triggers,
@@ -460,6 +461,19 @@ CREATE INDEX IF NOT EXISTS idx_skills_source_format ON skills(source_format);
 -- Add last_downloaded_at column for sorting by recent downloads
 ALTER TABLE skills ADD COLUMN IF NOT EXISTS last_downloaded_at TIMESTAMP WITH TIME ZONE;
 CREATE INDEX IF NOT EXISTS idx_skills_last_downloaded ON skills(last_downloaded_at DESC NULLS LAST);
+
+-- Curation columns (Phase 2 - February 2026)
+ALTER TABLE skills ADD COLUMN IF NOT EXISTS quality_score INTEGER;
+ALTER TABLE skills ADD COLUMN IF NOT EXISTS quality_details JSONB;
+ALTER TABLE skills ADD COLUMN IF NOT EXISTS skill_type TEXT;  -- 'standalone', 'project-bound', 'collection', 'aggregator'
+ALTER TABLE skills ADD COLUMN IF NOT EXISTS is_duplicate BOOLEAN DEFAULT FALSE;
+ALTER TABLE skills ADD COLUMN IF NOT EXISTS canonical_skill_id TEXT;  -- points to original if duplicate
+ALTER TABLE skills ADD COLUMN IF NOT EXISTS repo_skill_count INTEGER;  -- cached count of skills in repo
+
+CREATE INDEX IF NOT EXISTS idx_skills_quality ON skills(quality_score DESC NULLS LAST);
+CREATE INDEX IF NOT EXISTS idx_skills_type ON skills(skill_type);
+CREATE INDEX IF NOT EXISTS idx_skills_duplicate ON skills(is_duplicate);
+CREATE INDEX IF NOT EXISTS idx_skills_content_hash ON skills(content_hash);
 
 -- Grant permissions
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO postgres;

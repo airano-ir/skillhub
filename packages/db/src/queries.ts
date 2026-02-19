@@ -31,6 +31,13 @@ function getRawClientLocal() {
 type DB = PostgresJsDatabase<typeof schema>;
 
 /**
+ * Curation filter: excludes duplicates and aggregator-only skills.
+ * Skills with skill_type=NULL (newly crawled, not yet curated) are included
+ * so they don't disappear between curate.mjs runs.
+ */
+const browseReadyFilter = sql`(${skills.isDuplicate} = false) AND (${skills.skillType} IS NULL OR ${skills.skillType} != 'aggregator')`;
+
+/**
  * Skill queries
  */
 export const skillQueries = {
@@ -76,7 +83,8 @@ export const skillQueries = {
     } = options;
 
     const conditions = [
-      eq(skills.isBlocked, false), // Filter out blocked skills
+      eq(skills.isBlocked, false),
+      browseReadyFilter,
     ];
 
     // Filter by source format (default: SKILL.md only; 'all' shows everything)
@@ -200,7 +208,8 @@ export const skillQueries = {
     const { query, category, platform, sourceFormat = 'skill.md', minStars = 0, minSecurity, verified } = options;
 
     const conditions = [
-      eq(skills.isBlocked, false), // Filter out blocked skills
+      eq(skills.isBlocked, false),
+      browseReadyFilter,
     ];
 
     // Filter by source format (default: SKILL.md only; 'all' shows everything)
@@ -277,7 +286,7 @@ export const skillQueries = {
     return db
       .select()
       .from(skills)
-      .where(and(eq(skills.isFeatured, true), eq(skills.isBlocked, false), eq(skills.sourceFormat, 'skill.md')))
+      .where(and(eq(skills.isFeatured, true), eq(skills.isBlocked, false), eq(skills.sourceFormat, 'skill.md'), browseReadyFilter))
       .orderBy(desc(skills.githubStars))
       .limit(limit)
       .offset(offset);
@@ -290,7 +299,7 @@ export const skillQueries = {
     const result = await db
       .select({ count: sql<number>`cast(count(*) as int)` })
       .from(skills)
-      .where(and(eq(skills.isFeatured, true), eq(skills.isBlocked, false), eq(skills.sourceFormat, 'skill.md')));
+      .where(and(eq(skills.isFeatured, true), eq(skills.isBlocked, false), eq(skills.sourceFormat, 'skill.md'), browseReadyFilter));
     return result[0]?.count ?? 0;
   },
 
@@ -298,14 +307,14 @@ export const skillQueries = {
    * Get trending skills (most downloads in recent period)
    */
   getTrending: async (db: DB, limit = 10) => {
-    return db.select().from(skills).where(and(eq(skills.isBlocked, false), eq(skills.sourceFormat, 'skill.md'))).orderBy(desc(skills.downloadCount)).limit(limit);
+    return db.select().from(skills).where(and(eq(skills.isBlocked, false), eq(skills.sourceFormat, 'skill.md'), browseReadyFilter)).orderBy(desc(skills.downloadCount)).limit(limit);
   },
 
   /**
    * Get recently added skills with pagination (sorted by creation date)
    */
   getRecent: async (db: DB, limit = 10, offset = 0) => {
-    return db.select().from(skills).where(and(eq(skills.isBlocked, false), eq(skills.sourceFormat, 'skill.md'))).orderBy(desc(skills.createdAt)).limit(limit).offset(offset);
+    return db.select().from(skills).where(and(eq(skills.isBlocked, false), eq(skills.sourceFormat, 'skill.md'), browseReadyFilter)).orderBy(desc(skills.createdAt)).limit(limit).offset(offset);
   },
 
   /**
@@ -320,6 +329,7 @@ export const skillQueries = {
         and(
           eq(skills.isBlocked, false),
           eq(skills.sourceFormat, 'skill.md'),
+          browseReadyFilter,
           gte(skills.createdAt, sevenDaysAgo)
         )
       )
@@ -340,6 +350,7 @@ export const skillQueries = {
         and(
           eq(skills.isBlocked, false),
           eq(skills.sourceFormat, 'skill.md'),
+          browseReadyFilter,
           gte(skills.createdAt, sevenDaysAgo)
         )
       );
@@ -358,6 +369,7 @@ export const skillQueries = {
         and(
           eq(skills.isBlocked, false),
           eq(skills.sourceFormat, 'skill.md'),
+          browseReadyFilter,
           sql`${skills.createdAt} < ${sevenDaysAgo}`,
           gte(skills.updatedAt, sevenDaysAgo),
           sql`${skills.updatedAt} > ${skills.createdAt} + interval '1 hour'`
@@ -380,6 +392,7 @@ export const skillQueries = {
         and(
           eq(skills.isBlocked, false),
           eq(skills.sourceFormat, 'skill.md'),
+          browseReadyFilter,
           sql`${skills.createdAt} < ${sevenDaysAgo}`,
           gte(skills.updatedAt, sevenDaysAgo),
           sql`${skills.updatedAt} > ${skills.createdAt} + interval '1 hour'`
@@ -395,7 +408,7 @@ export const skillQueries = {
     const result = await db
       .select({ count: sql<number>`cast(count(*) as int)` })
       .from(skills)
-      .where(and(eq(skills.isBlocked, false), eq(skills.sourceFormat, 'skill.md')));
+      .where(and(eq(skills.isBlocked, false), eq(skills.sourceFormat, 'skill.md'), browseReadyFilter));
     return result[0]?.count ?? 0;
   },
 
@@ -410,7 +423,7 @@ export const skillQueries = {
         githubOwner: skills.githubOwner,
       })
       .from(skills)
-      .where(and(eq(skills.isBlocked, false), eq(skills.sourceFormat, 'skill.md')));
+      .where(and(eq(skills.isBlocked, false), eq(skills.sourceFormat, 'skill.md'), browseReadyFilter));
   },
 
   /**
@@ -467,7 +480,7 @@ export const skillQueries = {
     return db
       .select()
       .from(skills)
-      .where(and(eq(skills.isBlocked, false), eq(skills.sourceFormat, 'skill.md')))
+      .where(and(eq(skills.isBlocked, false), eq(skills.sourceFormat, 'skill.md'), browseReadyFilter))
       .orderBy(
         desc(
           sql`(
@@ -580,6 +593,7 @@ export const skillQueries = {
           githubStars: skill.githubStars,
           githubForks: skill.githubForks,
           securityScore: skill.securityScore,
+          securityStatus: skill.securityStatus,
           sourceFormat: skill.sourceFormat,
           contentHash: skill.contentHash,
           rawContent: skill.rawContent,
@@ -751,7 +765,7 @@ export const skillQueries = {
   ) => {
     const { limit = 24, offset = 0, sortBy = 'popularity', repo } = options;
 
-    const conditions = [eq(skills.githubOwner, owner), eq(skills.isBlocked, false)];
+    const conditions = [eq(skills.githubOwner, owner), eq(skills.isBlocked, false), browseReadyFilter];
     if (repo) conditions.push(eq(skills.githubRepo, repo));
     const ownerCondition = and(...conditions);
 
@@ -828,7 +842,7 @@ export const skillQueries = {
         skillCount: sql<number>`count(*) OVER (PARTITION BY ${skills.githubRepo})::int`,
       })
       .from(skills)
-      .where(and(eq(skills.githubOwner, owner), eq(skills.isBlocked, false)))
+      .where(and(eq(skills.githubOwner, owner), eq(skills.isBlocked, false), browseReadyFilter))
       .orderBy(skills.githubRepo, desc(skills.githubStars));
   },
 
@@ -836,7 +850,7 @@ export const skillQueries = {
    * Count skills by owner (for pagination), optionally filtered by repo
    */
   countByOwner: async (db: DB, owner: string, repo?: string): Promise<number> => {
-    const conditions = [eq(skills.githubOwner, owner), eq(skills.isBlocked, false)];
+    const conditions = [eq(skills.githubOwner, owner), eq(skills.isBlocked, false), browseReadyFilter];
     if (repo) conditions.push(eq(skills.githubRepo, repo));
     const result = await db
       .select({ count: sql<number>`cast(count(*) as int)` })
@@ -858,7 +872,7 @@ export const skillQueries = {
         maxStars: sql<number>`COALESCE(MAX(${skills.githubStars}), 0)::int`,
       })
       .from(skills)
-      .where(and(eq(skills.githubOwner, owner), eq(skills.isBlocked, false)));
+      .where(and(eq(skills.githubOwner, owner), eq(skills.isBlocked, false), browseReadyFilter));
 
     return result[0] ?? { totalSkills: 0, totalDownloads: 0, totalViews: 0, totalRepos: 0, maxStars: 0 };
   },
@@ -891,7 +905,7 @@ export const categoryQueries = {
       .select({ skill: skills })
       .from(skillCategories)
       .innerJoin(skills, eq(skillCategories.skillId, skills.id))
-      .where(eq(skillCategories.categoryId, categoryId))
+      .where(and(eq(skillCategories.categoryId, categoryId), sql`${browseReadyFilter}`))
       .orderBy(desc(skills.githubStars))
       .limit(limit)
       .offset(offset);

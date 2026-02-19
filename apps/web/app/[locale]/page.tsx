@@ -16,27 +16,32 @@ async function getStats() {
   try {
     const db = createDb();
 
-    // Get total skills count (SKILL.md only - real reusable skills)
+    // Browse-ready filter: exclude duplicates and aggregators
+    const browseReady = sql`${skills.isDuplicate} = false AND (${skills.skillType} IS NULL OR ${skills.skillType} != 'aggregator')`;
+
+    // Get total skills count (browse-ready, SKILL.md only)
     const skillsResult = await db
       .select({ count: sql<number>`count(*)::int` })
       .from(skills)
-      .where(sql`${skills.sourceFormat} = 'skill.md' AND ${skills.isBlocked} = false`);
+      .where(sql`${skills.sourceFormat} = 'skill.md' AND ${skills.isBlocked} = false AND ${browseReady}`);
     const totalSkills = skillsResult[0]?.count ?? 0;
 
-    // Get total downloads
+    // Get total downloads (browse-ready only)
     const downloadsResult = await db
       .select({ sum: sql<number>`coalesce(sum(${skills.downloadCount}), 0)::int` })
-      .from(skills);
+      .from(skills)
+      .where(browseReady);
     const totalDownloads = downloadsResult[0]?.sum ?? 0;
 
     // Get total categories
     const categories = await categoryQueries.getAll(db);
     const totalCategories = categories.length;
 
-    // Get unique contributors (github owners)
+    // Get unique contributors (browse-ready skills only)
     const contributorsResult = await db
       .select({ count: sql<number>`count(distinct ${skills.githubOwner})::int` })
-      .from(skills);
+      .from(skills)
+      .where(browseReady);
     const totalContributors = contributorsResult[0]?.count ?? 0;
 
     return {

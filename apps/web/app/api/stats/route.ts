@@ -34,14 +34,18 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Consolidate all skill stats into a single query for better performance
+    // Browse-ready filter: exclude duplicates and aggregators
+    const browseReady = sql`${skills.isDuplicate} = false AND (${skills.skillType} IS NULL OR ${skills.skillType} != 'aggregator')`;
+
+    // Consolidate all skill stats into a single query (browse-ready only)
     const statsResult = await db
       .select({
         totalSkills: sql<number>`count(*)::int`,
         totalDownloads: sql<number>`coalesce(sum(${skills.downloadCount}), 0)::int`,
         totalContributors: sql<number>`count(distinct ${skills.githubOwner})::int`,
       })
-      .from(skills);
+      .from(skills)
+      .where(browseReady);
 
     // Get category count in separate query (different table)
     const categoryResult = await db

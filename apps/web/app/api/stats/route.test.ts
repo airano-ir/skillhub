@@ -18,17 +18,26 @@ vi.mock('@/lib/cache', () => ({
 
 // Mock the db module - must be before imports that use it
 vi.mock('@skillhub/db', () => {
+  const mockStatsRow = [{ totalSkills: 100, totalDownloads: 5000, totalContributors: 50 }];
+  const mockCategoryRow = [{ count: 8 }];
   return {
     createDb: vi.fn(() => ({
       select: vi.fn().mockReturnValue({
-        from: vi.fn().mockResolvedValue([
-          { totalSkills: 100, totalDownloads: 5000, totalContributors: 50 },
-        ]),
+        from: vi.fn((table: unknown) => {
+          // categories table query returns count directly (no .where())
+          if (table === 'categories-table') {
+            return Promise.resolve(mockCategoryRow);
+          }
+          // skills table query has .where() chained
+          return {
+            where: vi.fn().mockResolvedValue(mockStatsRow),
+          };
+        }),
       }),
     })),
-    skills: { downloadCount: 'download_count', githubOwner: 'github_owner' },
-    categories: {},
-    sql: vi.fn(() => 'mock-sql'),
+    skills: { downloadCount: 'download_count', githubOwner: 'github_owner', isDuplicate: 'is_duplicate', skillType: 'skill_type' },
+    categories: 'categories-table',
+    sql: vi.fn((..._args: unknown[]) => 'mock-sql'),
   };
 });
 
