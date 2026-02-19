@@ -37,15 +37,21 @@ export async function GET(request: NextRequest) {
     // Browse-ready filter: exclude duplicates and aggregators
     const browseReady = sql`${skills.isDuplicate} = false AND (${skills.skillType} IS NULL OR ${skills.skillType} != 'aggregator')`;
 
-    // Consolidate all skill stats into a single query (browse-ready only)
+    // Browse-ready skill stats (skills count + contributors)
     const statsResult = await db
       .select({
         totalSkills: sql<number>`count(*)::int`,
-        totalDownloads: sql<number>`coalesce(sum(${skills.downloadCount}), 0)::int`,
         totalContributors: sql<number>`count(distinct ${skills.githubOwner})::int`,
       })
       .from(skills)
       .where(browseReady);
+
+    // Total downloads: count ALL downloads (real user actions, not filtered)
+    const downloadsResult = await db
+      .select({
+        totalDownloads: sql<number>`coalesce(sum(${skills.downloadCount}), 0)::int`,
+      })
+      .from(skills);
 
     // Get category count in separate query (different table)
     const categoryResult = await db
@@ -57,7 +63,7 @@ export async function GET(request: NextRequest) {
 
     const data: StatsData = {
       totalSkills: stats?.totalSkills ?? 0,
-      totalDownloads: stats?.totalDownloads ?? 0,
+      totalDownloads: downloadsResult[0]?.totalDownloads ?? 0,
       totalCategories,
       totalContributors: stats?.totalContributors ?? 0,
       platforms: 5, // Claude, Codex, Copilot, Cursor, Windsurf

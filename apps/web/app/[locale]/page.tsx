@@ -26,11 +26,10 @@ async function getStats() {
       .where(sql`${skills.sourceFormat} = 'skill.md' AND ${skills.isBlocked} = false AND ${browseReady}`);
     const totalSkills = skillsResult[0]?.count ?? 0;
 
-    // Get total downloads (browse-ready only)
+    // Get total downloads (ALL skills — downloads are real user actions)
     const downloadsResult = await db
       .select({ sum: sql<number>`coalesce(sum(${skills.downloadCount}), 0)::int` })
-      .from(skills)
-      .where(browseReady);
+      .from(skills);
     const totalDownloads = downloadsResult[0]?.sum ?? 0;
 
     // Get total categories
