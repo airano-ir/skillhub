@@ -74,7 +74,7 @@ export function BrowseFilters({
       const params = new URLSearchParams(searchParams.toString());
 
       Object.entries(updates).forEach(([key, value]) => {
-        if (value === null || value === '' || value === 'all' || value === 'false') {
+        if (value === null || value === '' || value === 'false') {
           params.delete(key);
         } else {
           params.set(key, value);

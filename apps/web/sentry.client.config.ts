@@ -30,6 +30,13 @@ Sentry.init({
   replaysOnErrorSampleRate: 1.0, // 100% of sessions with errors
 
   // Filter out common non-actionable errors
+  ignoreErrors: [
+    // AbortError during navigation is expected browser behavior when
+    // Next.js RSC prefetch/streaming requests get cancelled mid-flight
+    "AbortError: BodyStreamBuffer was aborted",
+    "AbortError",
+  ],
+
   beforeSend(event, hint) {
     // Ignore ResizeObserver errors (browser quirk, not actionable)
     if (event.exception?.values?.[0]?.value?.includes("ResizeObserver")) {
