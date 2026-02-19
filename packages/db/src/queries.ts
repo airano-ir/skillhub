@@ -594,6 +594,8 @@ export const skillQueries = {
           githubForks: skill.githubForks,
           securityScore: skill.securityScore,
           securityStatus: skill.securityStatus,
+          qualityScore: skill.qualityScore,
+          qualityDetails: skill.qualityDetails,
           sourceFormat: skill.sourceFormat,
           contentHash: skill.contentHash,
           rawContent: skill.rawContent,

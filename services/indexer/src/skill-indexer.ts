@@ -91,6 +91,13 @@ export async function indexSkill(
     githubForks: content.repoMeta.forks,
     securityScore: analysis.security.score,
     securityStatus: analysis.security.status,
+    qualityScore: analysis.quality.overall,
+    qualityDetails: {
+      documentation: analysis.quality.documentation,
+      maintenance: analysis.quality.maintenance,
+      popularity: analysis.quality.popularity,
+      factors: analysis.quality.factors,
+    },
     contentHash: analysis.meta.contentHash,
     rawContent: content.skillMd,
     indexedAt: new Date(),
