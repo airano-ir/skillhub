@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { FileText, UserCheck, AlertTriangle, Scale, Trash2, RefreshCw, ArrowRight, ArrowLeft } from 'lucide-react';
+import { getPageAlternates } from '@/lib/seo';
+
 
 export const dynamic = 'force-dynamic';
 
@@ -14,6 +16,18 @@ const sectionIcons = {
   takedown: Trash2,
   changes: RefreshCw,
 };
+
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  return {
+    alternates: getPageAlternates(locale, '/terms'),
+  };
+}
 
 export default async function TermsPage({
   params,

@@ -184,18 +184,6 @@ Always review skill source code before installing.
 
 ---
 
-## Roadmap
-
-- [x] Web marketplace with growing skill catalog
-- [x] CLI tool
-- [x] Multi-platform support
-- [x] Security scanning
-- [ ] Claude Code MCP plugin
-- [ ] AI-powered recommendations
-- [ ] Enterprise features
-
----
-
 ## License
 
 MIT - See [LICENSE](./LICENSE) for details.

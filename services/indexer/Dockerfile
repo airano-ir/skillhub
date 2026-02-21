@@ -44,6 +44,11 @@ RUN adduser --system --uid 1001 indexer
 # Copy only the bundled dist (no node_modules needed - everything is bundled)
 COPY --from=builder --chown=indexer:nodejs /app/services/indexer/dist ./dist
 
+# Curation scripts + skillhub-core (for batch-security, batch-score, curate)
+COPY --from=builder --chown=indexer:nodejs /app/scripts/curation ./scripts/curation
+COPY --from=builder --chown=indexer:nodejs /app/packages/core/dist ./packages/core/dist
+RUN npm install --no-save pg gray-matter yaml
+
 USER indexer
 
 CMD ["node", "dist/worker.js"]

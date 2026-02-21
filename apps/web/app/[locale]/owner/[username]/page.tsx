@@ -7,8 +7,22 @@ import { createDb, skillQueries } from '@skillhub/db';
 import { formatCompactNumber, toPersianNumber } from '@/lib/format-number';
 import { ExternalLink, Download, Package, Eye, GitFork, ArrowUpDown, FolderGit2 } from 'lucide-react';
 import Link from 'next/link';
+import type { Metadata } from 'next';
+import { getPageAlternates } from '@/lib/seo';
 
 export const dynamic = 'force-dynamic';
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string; username: string }>;
+}): Promise<Metadata> {
+  const { locale, username } = await params;
+  return {
+    title: `${decodeURIComponent(username)} | SkillHub`,
+    alternates: getPageAlternates(locale, `/owner/${username}`),
+  };
+}
 
 const ITEMS_PER_PAGE = 24;
 
@@ -183,11 +197,10 @@ export default async function OwnerPage({ params, searchParams }: OwnerPageProps
               <span className="text-sm text-text-secondary">{t('repo.filter')}:</span>
               <Link
                 href={buildUrl({ repo: '', page: 1 })}
-                className={`px-3 py-1 text-xs rounded-full transition-colors ${
-                  !activeRepo
+                className={`px-3 py-1 text-xs rounded-full transition-colors ${!activeRepo
                     ? 'bg-primary text-primary-foreground font-medium'
                     : 'bg-surface-elevated text-text-secondary hover:bg-surface-subtle border border-border'
-                }`}
+                  }`}
               >
                 {t('repo.all')} ({locale === 'fa' ? toPersianNumber(stats.totalSkills) : stats.totalSkills})
               </Link>
@@ -195,11 +208,10 @@ export default async function OwnerPage({ params, searchParams }: OwnerPageProps
                 <Link
                   key={r.repo}
                   href={buildUrl({ repo: r.repo, page: 1 })}
-                  className={`px-3 py-1 text-xs rounded-full transition-colors ${
-                    activeRepo === r.repo
+                  className={`px-3 py-1 text-xs rounded-full transition-colors ${activeRepo === r.repo
                       ? 'bg-primary text-primary-foreground font-medium'
                       : 'bg-surface-elevated text-text-secondary hover:bg-surface-subtle border border-border'
-                  }`}
+                    }`}
                 >
                   {r.repo} ({locale === 'fa' ? toPersianNumber(r.skillCount) : r.skillCount})
                 </Link>
@@ -227,11 +239,10 @@ export default async function OwnerPage({ params, searchParams }: OwnerPageProps
                   <Link
                     key={opt.value}
                     href={buildUrl({ sort: opt.value, page: 1 })}
-                    className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
-                      sort === opt.value
+                    className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${sort === opt.value
                         ? 'bg-primary text-primary-foreground font-medium'
                         : 'bg-surface-elevated text-text-secondary hover:bg-surface-subtle border border-border'
-                    }`}
+                      }`}
                   >
                     {opt.label}
                   </Link>

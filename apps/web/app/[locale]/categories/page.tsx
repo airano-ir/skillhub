@@ -31,6 +31,8 @@ import {
 } from 'lucide-react';
 import { createDb, categoryQueries } from '@skillhub/db';
 import { formatNumber } from '@/lib/format-number';
+import { getPageAlternates } from '@/lib/seo';
+
 
 // Force dynamic rendering to fetch fresh data from database
 export const dynamic = 'force-dynamic';
@@ -94,6 +96,18 @@ async function getHierarchicalCategories() {
     console.error('Error fetching categories:', error);
     return [];
   }
+}
+
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  return {
+    alternates: getPageAlternates(locale, '/categories'),
+  };
 }
 
 export default async function CategoriesPage({

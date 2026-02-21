@@ -7,6 +7,8 @@ import { HeroSearch } from '@/components/HeroSearch';
 import { SkillCard } from '@/components/SkillCard';
 import { createDb, categoryQueries, skillQueries, skills, sql } from '@skillhub/db';
 import { formatCompactNumber } from '@/lib/format-number';
+import { getPageAlternates } from '@/lib/seo';
+
 
 // Force dynamic rendering to fetch fresh data from database
 export const dynamic = 'force-dynamic';
@@ -16,8 +18,8 @@ async function getStats() {
   try {
     const db = createDb();
 
-    // Browse-ready filter: exclude duplicates and aggregators
-    const browseReady = sql`${skills.isDuplicate} = false AND (${skills.skillType} IS NULL OR ${skills.skillType} != 'aggregator')`;
+    // Browse-ready filter: exclude duplicates (matches browseReadyFilter in queries.ts)
+    const browseReady = sql`${skills.isDuplicate} = false`;
 
     // Get total skills count (browse-ready, SKILL.md only)
     const skillsResult = await db
@@ -81,6 +83,18 @@ async function getFeaturedSkills() {
   }
 }
 
+
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  return {
+    alternates: getPageAlternates(locale, '/'),
+  };
+}
 
 export default async function HomePage({
   params,

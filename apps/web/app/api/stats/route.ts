@@ -34,8 +34,8 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Browse-ready filter: exclude duplicates and aggregators
-    const browseReady = sql`${skills.isDuplicate} = false AND (${skills.skillType} IS NULL OR ${skills.skillType} != 'aggregator')`;
+    // Browse-ready filter: exclude duplicates (matches browseReadyFilter in queries.ts)
+    const browseReady = sql`${skills.isDuplicate} = false`;
 
     // Browse-ready skill stats (skills count + contributors)
     const statsResult = await db

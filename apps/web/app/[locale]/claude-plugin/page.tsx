@@ -1,4 +1,5 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { getPageAlternates } from '@/lib/seo';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import {
@@ -31,6 +32,7 @@ export async function generateMetadata({
   return {
     title: t('metadata.title'),
     description: t('metadata.description'),
+    alternates: getPageAlternates(locale, '/claude-plugin'),
     openGraph: {
       title: t('metadata.title'),
       description: t('metadata.description'),

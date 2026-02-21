@@ -51,6 +51,9 @@ CREATE TABLE IF NOT EXISTS skills (
     is_blocked BOOLEAN DEFAULT FALSE,  -- Blocked from re-indexing (owner requested removal)
     last_scanned TIMESTAMP WITH TIME ZONE,
 
+    -- Review pipeline
+    review_status TEXT DEFAULT 'unreviewed',  -- 'unreviewed', 'auto-scored', 'ai-reviewed', 'verified', 'needs-re-review'
+
     -- Content
     content_hash TEXT,
     raw_content TEXT,

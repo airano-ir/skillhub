@@ -2,11 +2,25 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { Mail, Bitcoin, ExternalLink } from 'lucide-react';
+import { getPageAlternates } from '@/lib/seo';
+
 
 export const dynamic = 'force-dynamic';
 
 interface SupportPageProps {
   params: Promise<{ locale: string }>;
+}
+
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  return {
+    alternates: getPageAlternates(locale, '/support'),
+  };
 }
 
 export default async function SupportPage({ params }: SupportPageProps) {

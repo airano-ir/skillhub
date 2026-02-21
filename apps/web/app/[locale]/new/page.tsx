@@ -7,6 +7,8 @@ import { Clock, RefreshCw } from 'lucide-react';
 import { createDb, skillQueries } from '@skillhub/db';
 import { toPersianNumber } from '@/lib/format-number';
 import { Pagination } from '@/components/BrowseFilters';
+import { getPageAlternates } from '@/lib/seo';
+
 
 // Force dynamic rendering to fetch fresh data from database
 export const dynamic = 'force-dynamic';
@@ -73,6 +75,18 @@ async function getTabCounts() {
     console.error('Error fetching counts:', error);
     return { newCount: 0, updatedCount: 0 };
   }
+}
+
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  return {
+    alternates: getPageAlternates(locale, '/new'),
+  };
 }
 
 export default async function NewSkillsPage({

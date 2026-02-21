@@ -16,9 +16,31 @@ import { createDb, skillQueries } from '@skillhub/db';
 import { FORMAT_LABELS } from 'skillhub-core';
 import { formatCompactNumber } from '@/lib/format-number';
 import { shouldCountView } from '@/lib/cache';
+import type { Metadata } from 'next';
+import { getPageAlternates } from '@/lib/seo';
 
 // Force dynamic rendering to fetch fresh data from database
 export const dynamic = 'force-dynamic';
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string; id: string[] }>;
+}): Promise<Metadata> {
+  const { locale, id } = await params;
+  const skillId = id.join('/');
+
+  // Optionally fetch skill name for title
+  const dbSkill = await getSkill(skillId);
+  const title = dbSkill ? `${dbSkill.name} | SkillHub` : 'SkillHub';
+  const description = dbSkill ? dbSkill.description : undefined;
+
+  return {
+    title,
+    description,
+    alternates: getPageAlternates(locale, `/skill/${skillId}`),
+  };
+}
 
 interface SkillPageProps {
   params: Promise<{ locale: string; id: string[] }>;
@@ -71,9 +93,9 @@ export default async function SkillPage({ params }: SkillPageProps) {
     const db = createDb();
     shouldCountView(dbSkill.id, clientIp).then((shouldCount) => {
       if (shouldCount) {
-        skillQueries.incrementViews(db, dbSkill.id).catch(() => {});
+        skillQueries.incrementViews(db, dbSkill.id).catch(() => { });
       }
-    }).catch(() => {});
+    }).catch(() => { });
   }
 
   // Map database response to expected format

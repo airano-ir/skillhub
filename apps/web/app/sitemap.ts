@@ -1,17 +1,8 @@
 import type { MetadataRoute } from 'next';
 import { createDb, skillQueries, categoryQueries } from '@skillhub/db';
-
-const BASE_URL =
-  process.env.NEXT_PUBLIC_APP_URL || 'https://skills.palebluedot.live';
+import { getCanonicalPath, primaryDomain as BASE_URL } from '@/lib/seo';
 
 const locales = ['en', 'fa'] as const;
-const DEFAULT_LOCALE = 'en';
-
-/** Get canonical URL path for a locale (no prefix for default locale, matching localePrefix: 'as-needed') */
-function canonicalPath(locale: string, route: string): string {
-  if (locale === DEFAULT_LOCALE) return route || '/';
-  return `/${locale}${route}`;
-}
 
 const staticRoutes = [
   '',
@@ -43,13 +34,13 @@ function makeEntry(
   }
 ): MetadataRoute.Sitemap[number] {
   return {
-    url: `${BASE_URL}${canonicalPath(locale, route)}`,
+    url: `${BASE_URL}${getCanonicalPath(locale, route)}`,
     lastModified: options?.lastModified,
     changeFrequency: options?.changeFrequency,
     priority: options?.priority,
     alternates: {
       languages: Object.fromEntries(
-        locales.map((l) => [l, `${BASE_URL}${canonicalPath(l, route)}`])
+        locales.map((l) => [l, `${BASE_URL}${getCanonicalPath(l, route)}`])
       ),
     },
   };

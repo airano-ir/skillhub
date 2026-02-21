@@ -31,11 +31,11 @@ function getRawClientLocal() {
 type DB = PostgresJsDatabase<typeof schema>;
 
 /**
- * Curation filter: excludes duplicates and aggregator-only skills.
+ * Curation filter: excludes duplicates.
  * Skills with skill_type=NULL (newly crawled, not yet curated) are included
  * so they don't disappear between curate.mjs runs.
  */
-const browseReadyFilter = sql`(${skills.isDuplicate} = false) AND (${skills.skillType} IS NULL OR ${skills.skillType} != 'aggregator')`;
+const browseReadyFilter = sql`(${skills.isDuplicate} = false)`;
 
 /**
  * Skill queries
@@ -556,16 +556,37 @@ export const skillQueries = {
     skill: typeof skills.$inferInsert
   ): Promise<typeof skills.$inferSelect> => {
     // Check if commitSha changed (for cache invalidation)
+    // and if content_hash changed (for re-review mechanism)
     let shouldClearCache = false;
-    if (skill.id && skill.commitSha) {
+    let shouldTriggerReReview = false;
+    if (skill.id) {
       const existing = await db
-        .select({ commitSha: skills.commitSha, cachedFiles: skills.cachedFiles })
+        .select({
+          commitSha: skills.commitSha,
+          cachedFiles: skills.cachedFiles,
+          contentHash: skills.contentHash,
+          reviewStatus: skills.reviewStatus,
+        })
         .from(skills)
         .where(eq(skills.id, skill.id))
         .limit(1);
 
-      if (existing[0] && existing[0].cachedFiles && existing[0].commitSha !== skill.commitSha) {
-        shouldClearCache = true;
+      if (existing[0]) {
+        // Cache invalidation: clear cachedFiles when commitSha changes
+        if (skill.commitSha && existing[0].cachedFiles && existing[0].commitSha !== skill.commitSha) {
+          shouldClearCache = true;
+        }
+
+        // Re-review mechanism (Phase 6.4): when content_hash changes and skill
+        // was previously reviewed, mark it for re-review
+        if (
+          skill.contentHash &&
+          existing[0].contentHash &&
+          existing[0].contentHash !== skill.contentHash &&
+          (existing[0].reviewStatus === 'verified' || existing[0].reviewStatus === 'ai-reviewed')
+        ) {
+          shouldTriggerReReview = true;
+        }
       }
     }
 
@@ -605,6 +626,9 @@ export const skillQueries = {
           // which only updates it when content-related columns actually change
           // Clear cachedFiles if commitSha changed
           ...(shouldClearCache ? { cachedFiles: null } : {}),
+          // Re-review mechanism (Phase 6.4): mark previously reviewed skills for re-review
+          // when their content changes. Only affects 'verified' and 'ai-reviewed' skills.
+          ...(shouldTriggerReReview ? { reviewStatus: 'needs-re-review' } : {}),
         },
       })
       .returning();
@@ -1172,7 +1196,7 @@ export async function runPostCrawlCuration(db: DB): Promise<{ classified: number
   `);
   results.classified = (classResult as unknown as { rowCount: number }).rowCount ?? 0;
 
-  // Step 4: Mark duplicates by content_hash (keep canonical = most stars)
+  // Step 4: Mark duplicates by content_hash (keep canonical = most stars, prioritizing standalone over aggregator)
   const dupResult = await db.execute(sql`
     UPDATE skills s SET is_duplicate = true
     WHERE s.is_blocked = false
@@ -1183,8 +1207,17 @@ export async function runPostCrawlCuration(db: DB): Promise<{ classified: number
         WHERE s2.content_hash = s.content_hash
           AND s2.is_blocked = false
           AND s2.id != s.id
-          AND (s2.github_stars > s.github_stars
-               OR (s2.github_stars = s.github_stars AND s2.indexed_at < s.indexed_at))
+          AND (
+            (s2.skill_type != 'aggregator' AND s.skill_type = 'aggregator')
+            OR (
+              (s2.skill_type = 'aggregator') = (s.skill_type = 'aggregator')
+              AND (
+                s2.github_stars > s.github_stars
+                OR (s2.github_stars = s.github_stars AND s2.github_forks > s.github_forks)
+                OR (s2.github_stars = s.github_stars AND s2.github_forks = s.github_forks AND s2.created_at < s.created_at)
+              )
+            )
+          )
       )
   `);
   results.duplicates = (dupResult as unknown as { rowCount: number }).rowCount ?? 0;
@@ -1198,7 +1231,6 @@ export async function runPostCrawlCuration(db: DB): Promise<{ classified: number
       JOIN skills s ON sc.skill_id = s.id
       WHERE s.is_blocked = false
         AND s.is_duplicate = false
-        AND (s.skill_type IS NULL OR s.skill_type != 'aggregator')
       GROUP BY sc.category_id
     ) sub
     WHERE c.id = sub.category_id

@@ -5,6 +5,8 @@ import { createDb, skillQueries, categoryQueries } from '@skillhub/db';
 import { BrowseFilters, SearchBar, Pagination, ActiveFilters, EmptyState } from '@/components/BrowseFilters';
 import { SkillCard } from '@/components/SkillCard';
 import { toPersianNumber } from '@/lib/format-number';
+import { getPageAlternates } from '@/lib/seo';
+
 
 // Force dynamic rendering to fetch fresh data from database
 export const dynamic = 'force-dynamic';
@@ -77,6 +79,18 @@ async function getSkills(params: {
     console.error('Error fetching skills:', error);
     return { skills: [], pagination: { total: 0, page: 1, totalPages: 1 } };
   }
+}
+
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  return {
+    alternates: getPageAlternates(locale, '/browse'),
+  };
 }
 
 export default async function BrowsePage({ params, searchParams }: BrowsePageProps) {

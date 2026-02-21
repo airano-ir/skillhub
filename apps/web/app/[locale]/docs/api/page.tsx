@@ -5,6 +5,20 @@ import { ApiEndpointSection } from '@/components/ApiEndpointSection';
 import type { EndpointDef } from '@/components/ApiEndpointSection';
 import Link from 'next/link';
 import { ArrowLeft, ArrowRight, Search, FileCode, Users, Compass, Mail } from 'lucide-react';
+import { getPageAlternates } from '@/lib/seo';
+
+
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  return {
+    alternates: getPageAlternates(locale, '/docs/api'),
+  };
+}
 
 export default async function ApiDocsPage({
   params,

@@ -3,6 +3,20 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { BookOpen, Terminal, Code } from 'lucide-react';
 import Link from 'next/link';
+import { getPageAlternates } from '@/lib/seo';
+
+
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  return {
+    alternates: getPageAlternates(locale, '/docs'),
+  };
+}
 
 export default async function DocsPage({
   params,

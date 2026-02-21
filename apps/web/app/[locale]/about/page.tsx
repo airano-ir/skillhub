@@ -2,6 +2,20 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { Code2, Globe, Shield } from 'lucide-react';
+import { getPageAlternates } from '@/lib/seo';
+
+
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  return {
+    alternates: getPageAlternates(locale, '/about'),
+  };
+}
 
 export default async function AboutPage({
   params,

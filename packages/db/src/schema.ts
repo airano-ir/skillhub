@@ -79,6 +79,7 @@ export const skills = pgTable(
     isDuplicate: boolean('is_duplicate').default(false),
     canonicalSkillId: text('canonical_skill_id'), // points to the "original" if this is a duplicate
     repoSkillCount: integer('repo_skill_count'), // cached count of skills in same repo
+    reviewStatus: text('review_status').default('unreviewed'), // unreviewed → auto-scored → ai-reviewed → verified (or needs-re-review)
 
     // Content (cached)
     contentHash: text('content_hash'),

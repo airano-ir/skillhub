@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { Github, Heart, Users, Code, GitFork, ExternalLink, Database, Clock } from 'lucide-react';
+import { getPageAlternates } from '@/lib/seo';
+
 
 export const dynamic = 'force-dynamic';
 
@@ -63,6 +65,18 @@ function formatLicenseName(license: string, locale: string): string {
   };
   const names = licenseNames[license];
   return names ? names[locale as 'en' | 'fa'] || names.en : license;
+}
+
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  return {
+    alternates: getPageAlternates(locale, '/attribution'),
+  };
 }
 
 export default async function AttributionPage({

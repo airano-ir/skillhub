@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { createDb, skills, sql } from '@skillhub/db';
 import { formatPromptSkillCount } from '@/lib/format-number';
+import { getPageAlternates } from '@/lib/seo';
+
 
 export const dynamic = 'force-dynamic';
 
@@ -15,7 +17,7 @@ async function getSkillCount(): Promise<string> {
     const result = await db
       .select({ count: sql<number>`count(*)::int` })
       .from(skills)
-      .where(sql`${skills.isDuplicate} = false AND (${skills.skillType} IS NULL OR ${skills.skillType} != 'aggregator')`);
+      .where(sql`${skills.isDuplicate} = false`);
     return formatPromptSkillCount(result[0]?.count ?? 16000);
   } catch {
     return '16,000+';
@@ -53,6 +55,18 @@ npx skillhub uninstall <skill-name>
 Search for unfamiliar tech or complex tasks. Only install "Pass" security status. Read SKILL.md after install.`,
 
     oneshot: `You have access to SkillHub (${count} AI agent skills, ${siteUrl}). For unfamiliar or complex tasks: \`npx skillhub search "<query>" --limit 5\` then \`npx skillhub install <id> --project\`. Only "Pass" security. Read SKILL.md after install. Uninstall when done.`,
+  };
+}
+
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  return {
+    alternates: getPageAlternates(locale, '/docs/getting-started'),
   };
 }
 

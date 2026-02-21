@@ -6,12 +6,26 @@ import { Footer } from '@/components/Footer';
 import { FavoritesList } from '@/components/FavoritesList';
 import { FavoritesSignIn } from '@/components/FavoritesSignIn';
 import { createDb, userQueries } from '@skillhub/db';
+import { getPageAlternates } from '@/lib/seo';
+
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
 
 interface FavoritesPageProps {
   params: Promise<{ locale: string }>;
+}
+
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  return {
+    alternates: getPageAlternates(locale, '/favorites'),
+  };
 }
 
 export default async function FavoritesPage({ params }: FavoritesPageProps) {
