@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createDb, skillQueries } from '@skillhub/db';
-import { shouldCountView } from '@/lib/cache';
+import { shouldCountView, getOrSetCache, cacheKeys, cacheTTL } from '@/lib/cache';
 
 // Create database connection
 const db = createDb();
@@ -35,8 +35,12 @@ export async function GET(
     const { id } = await params;
     const skillId = id.join('/');
 
-    // Get skill from database
-    const skill = await skillQueries.getById(db, skillId);
+    // Get skill from database (cached 1h)
+    const skill = await getOrSetCache(
+      cacheKeys.skill(skillId),
+      cacheTTL.skill,
+      () => skillQueries.getById(db, skillId)
+    );
 
     if (!skill) {
       return NextResponse.json(

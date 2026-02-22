@@ -6,7 +6,7 @@ import { BrowseFilters, SearchBar, Pagination, ActiveFilters, EmptyState } from 
 import { SkillCard } from '@/components/SkillCard';
 import { toPersianNumber } from '@/lib/format-number';
 import { getPageAlternates } from '@/lib/seo';
-import { getOrSetCache, cacheKeys, cacheTTL } from '@/lib/cache';
+import { getOrSetCache, cacheKeys, cacheTTL, hashSearchParams } from '@/lib/cache';
 
 
 // Force dynamic rendering to fetch fresh data from database
@@ -25,6 +25,7 @@ interface BrowsePageProps {
 }
 
 // Get skills directly from database with filters - all filtering at database level
+// Results are cached in Redis for 30 minutes, keyed by a hash of all filter parameters
 async function getSkills(params: {
   q?: string;
   platform?: string;
@@ -34,48 +35,62 @@ async function getSkills(params: {
   category?: string;
 }) {
   try {
-    const db = createDb();
     const limit = 20;
     const page = parseInt(params.page || '1');
-    const offset = (page - 1) * limit;
 
-    const sortMap: Record<string, 'stars' | 'downloads' | 'rating' | 'updated' | 'lastDownloaded'> = {
-      'stars': 'stars',
-      'downloads': 'downloads',
-      'recent': 'updated',
-      'rating': 'rating',
-      'lastDownloaded': 'lastDownloaded',
-    };
-
-    // Build filter options - push ALL filters to database level
-    const filterOptions = {
-      query: params.q,
+    const hash = hashSearchParams({
+      q: params.q,
       category: params.category,
       platform: params.platform && params.platform !== 'all' ? params.platform : undefined,
-      sourceFormat: params.format || 'skill.md',
-      sortBy: sortMap[params.sort || 'lastDownloaded'] || 'lastDownloaded',
-      sortOrder: 'desc' as const,
-      limit,
-      offset,
-    };
-
-    // Fetch paginated results directly from database
-    const skills = await skillQueries.search(db, filterOptions);
-
-    // Get accurate total count for pagination
-    const total = await skillQueries.count(db, {
-      query: params.q,
-      category: params.category,
-      platform: params.platform && params.platform !== 'all' ? params.platform : undefined,
-      sourceFormat: params.format || 'skill.md',
+      format: params.format || 'skill.md',
+      sort: params.sort || 'lastDownloaded',
+      page,
     });
 
-    const totalPages = Math.ceil(total / limit);
+    return await getOrSetCache(
+      cacheKeys.searchSkills(hash),
+      cacheTTL.search,
+      async () => {
+        const db = createDb();
+        const offset = (page - 1) * limit;
 
-    return {
-      skills,
-      pagination: { total, page, totalPages },
-    };
+        const sortMap: Record<string, 'stars' | 'downloads' | 'rating' | 'updated' | 'lastDownloaded'> = {
+          'stars': 'stars',
+          'downloads': 'downloads',
+          'recent': 'updated',
+          'rating': 'rating',
+          'lastDownloaded': 'lastDownloaded',
+        };
+
+        const filterOptions = {
+          query: params.q,
+          category: params.category,
+          platform: params.platform && params.platform !== 'all' ? params.platform : undefined,
+          sourceFormat: params.format || 'skill.md',
+          sortBy: sortMap[params.sort || 'lastDownloaded'] || 'lastDownloaded',
+          sortOrder: 'desc' as const,
+          limit,
+          offset,
+        };
+
+        const [skills, total] = await Promise.all([
+          skillQueries.search(db, filterOptions),
+          skillQueries.count(db, {
+            query: params.q,
+            category: params.category,
+            platform: params.platform && params.platform !== 'all' ? params.platform : undefined,
+            sourceFormat: params.format || 'skill.md',
+          }),
+        ]);
+
+        const totalPages = Math.ceil(total / limit);
+
+        return {
+          skills,
+          pagination: { total, page, totalPages },
+        };
+      }
+    );
   } catch (error) {
     console.error('Error fetching skills:', error);
     return { skills: [], pagination: { total: 0, page: 1, totalPages: 1 } };

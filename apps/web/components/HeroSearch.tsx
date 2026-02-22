@@ -15,8 +15,9 @@ export function HeroSearch({ placeholder, locale }: HeroSearchProps) {
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
+    window.dispatchEvent(new Event('progressbar:start'));
     if (query.trim()) {
-      router.push(`/${locale}/browse?q=${encodeURIComponent(query.trim())}`);
+      router.push(`/${locale}/browse?q=${encodeURIComponent(query.trim())}&sort=stars`);
     } else {
       router.push(`/${locale}/browse`);
     }

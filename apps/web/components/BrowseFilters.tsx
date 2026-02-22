@@ -272,6 +272,10 @@ export function SearchBar({ placeholder, defaultValue = '' }: SearchBarProps) {
 
     if (searchQuery) {
       params.set('q', searchQuery);
+      // Default to sorting by stars when searching
+      if (!params.get('sort')) {
+        params.set('sort', 'stars');
+      }
     } else {
       params.delete('q');
     }

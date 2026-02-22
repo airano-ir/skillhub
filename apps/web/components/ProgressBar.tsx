@@ -121,12 +121,19 @@ export function ProgressBar() {
     const handlePopState = () => onUrlChange();
     window.addEventListener('popstate', handlePopState);
 
+    // 4. Custom event for programmatic navigation (e.g. form submits with router.push)
+    const handleManualStart = () => {
+      if (!isRunningRef.current) start();
+    };
+    window.addEventListener('progressbar:start', handleManualStart);
+
     return () => {
       clearTimers();
       document.removeEventListener('click', handleClick, true);
       history.pushState = origPushState;
       history.replaceState = origReplaceState;
       window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener('progressbar:start', handleManualStart);
     };
   }, []);
 

@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createDb, skillQueries } from '@skillhub/db';
-import { invalidateCache, cacheKeys, shouldCountDownload } from '@/lib/cache';
+import { invalidateCache, invalidateCachePattern, cacheKeys, shouldCountDownload } from '@/lib/cache';
 
 // Create database connection
 const db = createDb();
@@ -69,12 +69,13 @@ export async function POST(request: NextRequest) {
       await skillQueries.incrementDownloads(db, skillId);
     }
 
-    // Invalidate relevant caches so featured/recent lists reflect the new download
+    // Invalidate relevant caches so featured/recent/browse lists reflect the new download
     await Promise.all([
       invalidateCache(cacheKeys.featuredSkills()),
       invalidateCache(cacheKeys.recentSkills()),
       invalidateCache(cacheKeys.stats()),
       invalidateCache(cacheKeys.skill(skillId)),
+      invalidateCachePattern('skills:search:*'),
     ]);
 
     return NextResponse.json({
