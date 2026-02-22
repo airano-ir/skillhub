@@ -55,6 +55,8 @@ interface ClaimFormProps {
     success: {
       title: string;
       description: string;
+      pendingTitle: string;
+      pendingDescription: string;
       viewRequests: string;
     };
     addSuccess: {
@@ -161,6 +163,7 @@ export function ClaimForm({ translations }: ClaimFormProps) {
   const [isSubmittingRemove, setIsSubmittingRemove] = useState(false);
   const [removeError, setRemoveError] = useState('');
   const [removeSuccess, setRemoveSuccess] = useState(false);
+  const [removePending, setRemovePending] = useState(false);
   const [removalRequests, setRemovalRequests] = useState<RemovalRequest[]>([]);
   const [loadingRemovalRequests, setLoadingRemovalRequests] = useState(false);
 
@@ -267,6 +270,7 @@ export function ClaimForm({ translations }: ClaimFormProps) {
       }
 
       setRemoveSuccess(true);
+      setRemovePending(data.pending || false);
       setSkillId('');
       setRemoveReason('');
       fetchRemovalRequests();
@@ -438,11 +442,13 @@ export function ClaimForm({ translations }: ClaimFormProps) {
       <div className="card p-8 text-center">
         <CheckCircle className="w-12 h-12 mx-auto mb-4 text-success" />
         <h2 className="text-xl font-semibold text-text-primary mb-2">
-          {translations.success.title}
+          {removePending ? translations.success.pendingTitle : translations.success.title}
         </h2>
-        <p className="text-text-secondary mb-6">{translations.success.description}</p>
+        <p className="text-text-secondary mb-6">
+          {removePending ? translations.success.pendingDescription : translations.success.description}
+        </p>
         <button
-          onClick={() => setRemoveSuccess(false)}
+          onClick={() => { setRemoveSuccess(false); setRemovePending(false); }}
           className="btn-secondary"
         >
           {translations.success.viewRequests}

@@ -1,7 +1,7 @@
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { createDb, addRequestQueries, userQueries } from '@skillhub/db';
+import { createDb, addRequestQueries, discoveredRepoQueries, userQueries } from '@skillhub/db';
 import { sanitizeReason } from '@/lib/sanitize';
 import { sendClaimSubmittedEmail } from '@/lib/email';
 
@@ -388,6 +388,26 @@ export async function POST(request: NextRequest) {
       validRepo: validation.valid,
       hasSkillMd: validation.hasSkillMd,
     });
+
+    // Auto-approve and queue for crawling if SKILL.md found
+    if (validation.hasSkillMd && validation.skillPaths.length > 0) {
+      await addRequestQueries.updateStatus(db, requestId, {
+        status: 'approved',
+      });
+
+      // Queue repo for indexer crawling via discovered_repos
+      try {
+        await discoveredRepoQueries.upsert(db, {
+          id: `${parsed.owner}/${parsed.repo}`,
+          owner: parsed.owner,
+          repo: parsed.repo,
+          discoveredVia: 'add-request',
+          githubStars: 0,
+        });
+      } catch (err) {
+        console.warn('[Claim] Failed to queue repo for crawling:', err);
+      }
+    }
 
     // Build appropriate response message
     let message: string;

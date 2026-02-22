@@ -104,18 +104,39 @@ export const skillQueries = {
         // Also match hyphenated version (spaces replaced with hyphens)
         const hyphenated = words.join('-');
         const wordConditions = words.map(word =>
-          sql`(${skills.name} ILIKE ${`%${word}%`} OR ${skills.description} ILIKE ${`%${word}%`} OR ${skills.githubOwner} ILIKE ${`%${word}%`})`
+          sql`(${skills.name} ILIKE ${`%${word}%`} OR ${skills.description} ILIKE ${`%${word}%`} OR ${skills.githubOwner} ILIKE ${`%${word}%`} OR ${skills.githubRepo} ILIKE ${`%${word}%`})`
         );
         conditions.push(
           sql`(
             (${sql.join(wordConditions, sql` AND `)})
             OR ${skills.name} ILIKE ${`%${hyphenated}%`}
             OR ${skills.description} ILIKE ${`%${hyphenated}%`}
+            OR ${skills.githubOwner} ILIKE ${`%${hyphenated}%`}
+            OR ${skills.githubRepo} ILIKE ${`%${hyphenated}%`}
           )`
         );
+      } else if (query.includes('-')) {
+        // Single hyphenated term: also search each part independently
+        // e.g. "pdf-converter" -> search "pdf-converter" OR ("pdf" AND "converter")
+        const parts = query.split('-').filter(w => w.length > 0);
+        if (parts.length > 1) {
+          const partConditions = parts.map(part =>
+            sql`(${skills.name} ILIKE ${`%${part}%`} OR ${skills.description} ILIKE ${`%${part}%`} OR ${skills.githubOwner} ILIKE ${`%${part}%`} OR ${skills.githubRepo} ILIKE ${`%${part}%`})`
+          );
+          conditions.push(
+            sql`(
+              (${skills.name} ILIKE ${`%${query}%`} OR ${skills.description} ILIKE ${`%${query}%`} OR ${skills.githubOwner} ILIKE ${`%${query}%`} OR ${skills.githubRepo} ILIKE ${`%${query}%`})
+              OR (${sql.join(partConditions, sql` AND `)})
+            )`
+          );
+        } else {
+          conditions.push(
+            sql`(${skills.name} ILIKE ${`%${query}%`} OR ${skills.description} ILIKE ${`%${query}%`} OR ${skills.githubOwner} ILIKE ${`%${query}%`} OR ${skills.githubRepo} ILIKE ${`%${query}%`})`
+          );
+        }
       } else {
         conditions.push(
-          sql`(${skills.name} ILIKE ${`%${query}%`} OR ${skills.description} ILIKE ${`%${query}%`} OR ${skills.githubOwner} ILIKE ${`%${query}%`})`
+          sql`(${skills.name} ILIKE ${`%${query}%`} OR ${skills.description} ILIKE ${`%${query}%`} OR ${skills.githubOwner} ILIKE ${`%${query}%`} OR ${skills.githubRepo} ILIKE ${`%${query}%`})`
         );
       }
     }
@@ -225,18 +246,39 @@ export const skillQueries = {
       if (words.length > 1) {
         const hyphenated = words.join('-');
         const wordConditions = words.map(word =>
-          sql`(${skills.name} ILIKE ${`%${word}%`} OR ${skills.description} ILIKE ${`%${word}%`} OR ${skills.githubOwner} ILIKE ${`%${word}%`})`
+          sql`(${skills.name} ILIKE ${`%${word}%`} OR ${skills.description} ILIKE ${`%${word}%`} OR ${skills.githubOwner} ILIKE ${`%${word}%`} OR ${skills.githubRepo} ILIKE ${`%${word}%`})`
         );
         conditions.push(
           sql`(
             (${sql.join(wordConditions, sql` AND `)})
             OR ${skills.name} ILIKE ${`%${hyphenated}%`}
             OR ${skills.description} ILIKE ${`%${hyphenated}%`}
+            OR ${skills.githubOwner} ILIKE ${`%${hyphenated}%`}
+            OR ${skills.githubRepo} ILIKE ${`%${hyphenated}%`}
           )`
         );
+      } else if (query.includes('-')) {
+        // Single hyphenated term: also search each part independently
+        // e.g. "pdf-converter" -> search "pdf-converter" OR ("pdf" AND "converter")
+        const parts = query.split('-').filter(w => w.length > 0);
+        if (parts.length > 1) {
+          const partConditions = parts.map(part =>
+            sql`(${skills.name} ILIKE ${`%${part}%`} OR ${skills.description} ILIKE ${`%${part}%`} OR ${skills.githubOwner} ILIKE ${`%${part}%`} OR ${skills.githubRepo} ILIKE ${`%${part}%`})`
+          );
+          conditions.push(
+            sql`(
+              (${skills.name} ILIKE ${`%${query}%`} OR ${skills.description} ILIKE ${`%${query}%`} OR ${skills.githubOwner} ILIKE ${`%${query}%`} OR ${skills.githubRepo} ILIKE ${`%${query}%`})
+              OR (${sql.join(partConditions, sql` AND `)})
+            )`
+          );
+        } else {
+          conditions.push(
+            sql`(${skills.name} ILIKE ${`%${query}%`} OR ${skills.description} ILIKE ${`%${query}%`} OR ${skills.githubOwner} ILIKE ${`%${query}%`} OR ${skills.githubRepo} ILIKE ${`%${query}%`})`
+          );
+        }
       } else {
         conditions.push(
-          sql`(${skills.name} ILIKE ${`%${query}%`} OR ${skills.description} ILIKE ${`%${query}%`} OR ${skills.githubOwner} ILIKE ${`%${query}%`})`
+          sql`(${skills.name} ILIKE ${`%${query}%`} OR ${skills.description} ILIKE ${`%${query}%`} OR ${skills.githubOwner} ILIKE ${`%${query}%`} OR ${skills.githubRepo} ILIKE ${`%${query}%`})`
         );
       }
     }
@@ -1993,6 +2035,26 @@ export const addRequestQueries = {
         errorMessage: data.errorMessage,
       })
       .where(eq(addRequests.id, id));
+  },
+
+  /**
+   * Find approved add requests matching a repository (owner/repo)
+   */
+  findApprovedByRepo: async (
+    db: DB,
+    owner: string,
+    repo: string
+  ) => {
+    const repoUrl = `https://github.com/${owner}/${repo}`;
+    return db
+      .select()
+      .from(addRequests)
+      .where(
+        and(
+          eq(addRequests.repositoryUrl, repoUrl),
+          eq(addRequests.status, 'approved')
+        )
+      );
   },
 
   /**

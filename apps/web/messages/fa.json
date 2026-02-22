@@ -719,6 +719,8 @@
     "success": {
       "title": "مهارت مسدود شد",
       "description": "مهارت شما از ایندکس شدن مسدود شد. دیگر در SkillHub نمایش داده نخواهد شد.",
+      "pendingTitle": "درخواست ثبت شد",
+      "pendingDescription": "مخزن در GitHub یافت نشد. درخواست حذف شما برای بررسی ادمین ثبت شد.",
       "viewRequests": "مشاهده درخواست‌های من"
     },
     "addSuccess": {

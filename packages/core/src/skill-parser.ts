@@ -23,6 +23,7 @@ const MAX_NAME_LENGTH = 64;
  */
 function sanitizeUtf8(input: string): string {
   // Remove null bytes and C0 control characters (except \t \n \r)
+  // eslint-disable-next-line no-control-regex
   let result = input.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
   // Encode to buffer and decode back to strip invalid sequences
   result = Buffer.from(result, 'utf8').toString('utf8');

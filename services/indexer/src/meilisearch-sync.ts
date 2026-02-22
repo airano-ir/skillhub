@@ -113,6 +113,12 @@ async function initializeIndex(): Promise<void> {
       'githubStars:desc',
     ]);
 
+    // Configure separator tokens so hyphens split into individual words
+    // This means "pdf-converter" is searchable as "pdf converter"
+    await index.updateSettings({
+      separatorTokens: ['-'],
+    });
+
     indexInitialized = true;
     console.log('Meilisearch skills index initialized');
   } catch (error) {

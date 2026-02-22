@@ -6,6 +6,7 @@ import { locales, localeDirection, type Locale } from '@/i18n';
 import { Providers } from '../providers';
 import { Suspense } from 'react';
 import { QueryNotification } from '@/components/QueryNotification';
+import { ProgressBar } from '@/components/ProgressBar';
 import '../globals.css';
 
 export async function generateMetadata({
@@ -70,6 +71,7 @@ export default async function LocaleLayout({
             <Suspense fallback={null}>
               <QueryNotification />
             </Suspense>
+            <ProgressBar />
             {children}
           </NextIntlClientProvider>
         </Providers>

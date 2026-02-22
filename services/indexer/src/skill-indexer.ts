@@ -4,7 +4,8 @@
  */
 
 import type { SourceFormat } from 'skillhub-core';
-import { createDb, skillQueries, categoryQueries, type Database } from '@skillhub/db';
+import { createDb, skillQueries, categoryQueries, addRequestQueries, userQueries, type Database } from '@skillhub/db';
+import { sendSkillIndexedEmail } from './email-notify.js';
 import type { GitHubCrawler } from './crawler.js';
 import { SkillAnalyzer } from './analyzer.js';
 import { syncSkillToMeilisearch } from './meilisearch-sync.js';
@@ -116,6 +117,41 @@ export async function indexSkill(
     securityScore: analysis.security.score,
     indexedAt: new Date(),
   });
+
+  // Check for matching add-requests and mark as indexed
+  try {
+    const matchingRequests = await addRequestQueries.findApprovedByRepo(
+      database,
+      source.owner,
+      source.repo
+    );
+
+    for (const request of matchingRequests) {
+      await addRequestQueries.updateStatus(database, request.id, {
+        status: 'indexed',
+        indexedSkillId: skillId,
+      });
+
+      // Send email notification
+      const user = await userQueries.getById(database, request.userId);
+      if (user?.email) {
+        const locale = (user.preferredLocale === 'fa' ? 'fa' : 'en') as 'en' | 'fa';
+        await sendSkillIndexedEmail(
+          user.email,
+          locale,
+          {
+            skillId,
+            skillName: analysis.skill.metadata.name,
+            repositoryUrl: `https://github.com/${source.owner}/${source.repo}`,
+          }
+        ).catch((err: unknown) => {
+          console.warn(`[Indexer] Failed to send indexed email for ${skillId}:`, err);
+        });
+      }
+    }
+  } catch (error) {
+    console.warn(`[Indexer] Failed to check add-requests for ${skillId}:`, error);
+  }
 
   // Link skill to categories based on keywords
   try {

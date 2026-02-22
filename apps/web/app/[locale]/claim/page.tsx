@@ -64,6 +64,8 @@ export default async function ClaimPage({
     success: {
       title: t('success.title'),
       description: t('success.description'),
+      pendingTitle: t('success.pendingTitle'),
+      pendingDescription: t('success.pendingDescription'),
       viewRequests: t('success.viewRequests'),
     },
     addSuccess: {

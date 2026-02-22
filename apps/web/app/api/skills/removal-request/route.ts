@@ -124,6 +124,7 @@ export async function POST(request: NextRequest) {
 
     // Check repository ownership using public API (no token needed for public repos)
     let isOwner = false;
+    let repoDeleted = false;
     let githubError: string | null = null;
 
     try {
@@ -144,7 +145,7 @@ export async function POST(request: NextRequest) {
           isOwner = true;
         }
       } else if (repoResponse.status === 404) {
-        githubError = 'Repository not found on GitHub';
+        repoDeleted = true;
       } else if (repoResponse.status === 403) {
         githubError = 'GitHub API rate limit exceeded';
       }
@@ -160,23 +161,34 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!isOwner) {
+    if (!isOwner && !repoDeleted) {
       return NextResponse.json(
         { error: 'You are not the owner of this repository', code: 'NOT_OWNER' },
         { status: 403 }
       );
     }
 
-    // Create the removal request (auto-approved since owner is verified)
+    // Create the removal request
     const sanitizedReason = reason ? sanitizeReason(reason) : 'No reason provided';
     const requestId = await removalRequestQueries.create(db, {
       userId: dbUser.id,
       skillId,
       reason: sanitizedReason,
-      verifiedOwner: true,
+      verifiedOwner: !repoDeleted,
     });
 
-    // Auto-approve: Block the skill from being re-indexed
+    if (repoDeleted) {
+      // Repo not found — submit for admin review instead of auto-approving
+      return NextResponse.json({
+        success: true,
+        requestId,
+        pending: true,
+        blocked: false,
+        message: 'Repository not found on GitHub. Your removal request has been submitted for admin review.',
+      });
+    }
+
+    // Owner verified — auto-approve: Block the skill from being re-indexed
     await skillQueries.block(db, skillId);
 
     // Update the request status to approved

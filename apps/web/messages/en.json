@@ -719,6 +719,8 @@
     "success": {
       "title": "Skill Blocked",
       "description": "Your skill has been blocked from indexing. It will no longer appear in SkillHub.",
+      "pendingTitle": "Request Submitted",
+      "pendingDescription": "The repository was not found on GitHub. Your removal request has been submitted for admin review.",
       "viewRequests": "View My Requests"
     },
     "addSuccess": {
