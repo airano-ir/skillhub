@@ -7,6 +7,7 @@ import { createAwesomeListCrawler } from './awesome-list.js';
 import { createTopicSearchCrawler } from './topic-search.js';
 import { createDeepScanCrawler } from './deep-scan.js';
 import { createForkNetworkCrawler } from './fork-network.js';
+import { createCommitsSearchCrawler } from './commits-search.js';
 import { TokenManager } from '../token-manager.js';
 import type { SkillSource } from 'skillhub-core';
 
@@ -41,6 +42,7 @@ export class StrategyOrchestrator {
   private topicCrawler: ReturnType<typeof createTopicSearchCrawler>;
   private deepScanCrawler: ReturnType<typeof createDeepScanCrawler>;
   private forkCrawler: ReturnType<typeof createForkNetworkCrawler>;
+  private commitsCrawler: ReturnType<typeof createCommitsSearchCrawler>;
   private tokenManager: TokenManager;
 
   constructor(tokenManager?: TokenManager) {
@@ -49,6 +51,7 @@ export class StrategyOrchestrator {
     this.topicCrawler = createTopicSearchCrawler(this.tokenManager);
     this.deepScanCrawler = createDeepScanCrawler(this.tokenManager);
     this.forkCrawler = createForkNetworkCrawler(this.tokenManager);
+    this.commitsCrawler = createCommitsSearchCrawler(this.tokenManager);
   }
 
   /**
@@ -170,6 +173,32 @@ export class StrategyOrchestrator {
   }
 
   /**
+   * Run commits search discovery (finds repos with recent SKILL.md commits)
+   */
+  async runCommitsSearchStrategy(): Promise<DiscoveryResult> {
+    console.log('\n=== Running Commits Search Strategy ===');
+    const startTime = Date.now();
+
+    const repoResults = await this.commitsCrawler.discoverReposFromCommits(30);
+
+    const repos = repoResults.map((r) => ({
+      owner: r.owner,
+      repo: r.repo,
+      stars: r.stars,
+      discoveredVia: 'commits-search',
+    }));
+
+    console.log(`Commits search strategy completed in ${Date.now() - startTime}ms`);
+    console.log(`Discovered ${repos.length} repositories`);
+
+    return {
+      source: 'commits-search',
+      repos,
+      skills: [],
+    };
+  }
+
+  /**
    * Run all strategies and return combined results
    */
   async runAllStrategies(): Promise<{
@@ -230,7 +259,24 @@ export class StrategyOrchestrator {
       console.error('Topic search strategy failed:', error);
     }
 
-    // 3. Fork network (for high-star repos from above)
+    // 3. Commits search (find repos with recent SKILL.md commits)
+    try {
+      const commitsResult = await this.runCommitsSearchStrategy();
+      stats.byStrategy['commits-search'] = {
+        repos: commitsResult.repos.length,
+        skills: 0,
+      };
+      for (const repo of commitsResult.repos) {
+        const key = `${repo.owner}/${repo.repo}`.toLowerCase();
+        if (!allRepos.has(key)) {
+          allRepos.set(key, repo);
+        }
+      }
+    } catch (error) {
+      console.error('Commits search strategy failed:', error);
+    }
+
+    // 4. Fork network (for high-star repos from above)
     try {
       const highStarRepos = Array.from(allRepos.values())
         .filter((r) => (r.stars || 0) >= 10)
@@ -283,10 +329,15 @@ export function createStrategyOrchestrator(tokenManager?: TokenManager | string)
 // Re-export strategy creators
 export { createAwesomeListCrawler } from './awesome-list.js';
 export { createTopicSearchCrawler } from './topic-search.js';
-export { createDeepScanCrawler } from './deep-scan.js';
+export { createDeepScanCrawler, filterAndSortBranches } from './deep-scan.js';
+export type { DeepScanOptions } from './deep-scan.js';
 export { createForkNetworkCrawler } from './fork-network.js';
+export { createPopularReposCrawler } from './popular-repos.js';
+export { createCommitsSearchCrawler } from './commits-search.js';
 
 // Re-export types
 export type { RepoReference } from './awesome-list.js';
 export type { RepoResult } from './topic-search.js';
 export type { ForkInfo } from './fork-network.js';
+export type { PopularRepoResult } from './popular-repos.js';
+export type { CommitSearchRepoResult } from './commits-search.js';

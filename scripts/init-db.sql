@@ -65,6 +65,7 @@ CREATE TABLE IF NOT EXISTS skills (
     -- Timestamps
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    repo_created_at TIMESTAMP WITH TIME ZONE,
     indexed_at TIMESTAMP WITH TIME ZONE,
     last_downloaded_at TIMESTAMP WITH TIME ZONE
 );
@@ -477,6 +478,13 @@ CREATE INDEX IF NOT EXISTS idx_skills_quality ON skills(quality_score DESC NULLS
 CREATE INDEX IF NOT EXISTS idx_skills_type ON skills(skill_type);
 CREATE INDEX IF NOT EXISTS idx_skills_duplicate ON skills(is_duplicate);
 CREATE INDEX IF NOT EXISTS idx_skills_content_hash ON skills(content_hash);
+
+-- Review pipeline columns (Phase 4+5 - February 2026)
+ALTER TABLE skills ADD COLUMN IF NOT EXISTS review_status TEXT DEFAULT 'unreviewed';
+CREATE INDEX IF NOT EXISTS idx_skills_review_status ON skills(review_status);
+
+-- Repo creation date for duplicate tie-breaking (T074b)
+ALTER TABLE skills ADD COLUMN IF NOT EXISTS repo_created_at TIMESTAMP WITH TIME ZONE;
 
 -- Grant permissions
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO postgres;

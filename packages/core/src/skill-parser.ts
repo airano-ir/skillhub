@@ -17,6 +17,21 @@ const MAX_DESCRIPTION_LENGTH = 1024;
 const MAX_NAME_LENGTH = 64;
 
 /**
+ * Sanitize a string to be valid UTF-8 for JSONB storage.
+ * Removes incomplete multi-byte sequences and control characters
+ * that PostgreSQL's jsonb_build_object rejects.
+ */
+function sanitizeUtf8(input: string): string {
+  // Remove null bytes and C0 control characters (except \t \n \r)
+  let result = input.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
+  // Encode to buffer and decode back to strip invalid sequences
+  result = Buffer.from(result, 'utf8').toString('utf8');
+  // Replace lone surrogates (U+D800-U+DFFF) which are invalid in UTF-8
+  result = result.replace(/[\uD800-\uDFFF]/g, '');
+  return result;
+}
+
+/**
  * File patterns for discovering instruction files on GitHub
  */
 export const INSTRUCTION_FILE_PATTERNS: InstructionFilePattern[] = [
@@ -117,8 +132,8 @@ export function parseSkillMd(content: string): ParsedSkill {
 
   // Build metadata
   const metadata: SkillMetadata = {
-    name: String(frontmatter.name || ''),
-    description: String(frontmatter.description || ''),
+    name: sanitizeUtf8(String(frontmatter.name || '')),
+    description: sanitizeUtf8(String(frontmatter.description || '')),
     version: frontmatter.version ? String(frontmatter.version) : undefined,
     license: frontmatter.license ? String(frontmatter.license) : undefined,
     author: frontmatter.author ? String(frontmatter.author) : undefined,
@@ -387,8 +402,8 @@ export function parseGenericInstructionFile(
   const inferredPlatform = pattern?.inferredPlatform || 'claude';
 
   const metadata: SkillMetadata = {
-    name: derivedName,
-    description: derivedDescription.slice(0, MAX_DESCRIPTION_LENGTH),
+    name: sanitizeUtf8(derivedName),
+    description: sanitizeUtf8(derivedDescription.slice(0, MAX_DESCRIPTION_LENGTH)),
     version: frontmatter.version ? String(frontmatter.version) : undefined,
     license: frontmatter.license ? String(frontmatter.license) : undefined,
     author: frontmatter.author ? String(frontmatter.author) : repoMeta.owner,

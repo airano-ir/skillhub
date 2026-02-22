@@ -45,6 +45,7 @@ export interface RepoMetadata {
   license: string | null;
   description: string | null;
   updatedAt: string;
+  createdAt: string;
   defaultBranch: string;
   topics: string[];
 }
@@ -345,7 +346,7 @@ export class GitHubCrawler {
             owner: item.repository.owner.login,
             repo: item.repository.name,
             path: skillPath,
-            branch: 'main',
+            branch: '',  // empty → fetchSkillContent falls back to repoMeta.defaultBranch
             sourceFormat: expectedFormat,
           });
         }
@@ -443,6 +444,7 @@ export class GitHubCrawler {
       license: response.data.license?.spdx_id || null,
       description: response.data.description,
       updatedAt: response.data.updated_at,
+      createdAt: response.data.created_at,
       defaultBranch: response.data.default_branch,
       topics: response.data.topics || [],
     };

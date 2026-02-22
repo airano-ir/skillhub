@@ -8,10 +8,38 @@ import { INSTRUCTION_FILE_PATTERNS, type SourceFormat } from 'skillhub-core';
 import { scheduleFullCrawl, scheduleIncrementalCrawl, getQueueStats, getQueue } from './queue.js';
 import { syncAllSkillsToMeilisearch, checkMeilisearchHealth } from './meilisearch-sync.js';
 import { createDb, skillQueries, categoryQueries, discoveredRepoQueries, awesomeListQueries, addRequestQueries, userQueries, sql } from '@skillhub/db';
-import { createStrategyOrchestrator, createDeepScanCrawler, createAwesomeListCrawler } from './strategies/index.js';
+import { createStrategyOrchestrator, createDeepScanCrawler, createAwesomeListCrawler, createPopularReposCrawler, createCommitsSearchCrawler } from './strategies/index.js';
 import { createCrawler } from './crawler.js';
 import { indexSkill } from './skill-indexer.js';
 import { TokenManager } from './token-manager.js';
+
+/**
+ * Parse a GitHub repository URL into owner, repo, and optional branch.
+ * Handles: github.com/owner/repo, github.com/owner/repo/tree/branch,
+ * github.com/owner/repo/tree/branch/some/path
+ */
+export function parseGitHubRepoUrl(urlStr: string): {
+  owner: string;
+  repo: string;
+  branch: string | null;
+} {
+  const url = new URL(urlStr);
+  const parts = url.pathname.split('/').filter(Boolean);
+
+  const owner = parts[0];
+  const repo = parts[1];
+
+  if (!owner || !repo) {
+    throw new Error(`Invalid GitHub URL: ${urlStr}`);
+  }
+
+  // Check for /tree/{branch} path segment
+  if (parts[2] === 'tree' && parts[3]) {
+    return { owner, repo, branch: parts[3] };
+  }
+
+  return { owner, repo, branch: null };
+}
 
 const command = process.argv[2] || 'stats';
 
@@ -309,6 +337,91 @@ async function main() {
       break;
     }
 
+    case 'discover-popular': {
+      console.log('Discovering popular GitHub repositories...\n');
+      const popDb = createDb(process.env.DATABASE_URL);
+      const popCrawler = createPopularReposCrawler();
+      const popBudgetCrawler = createCrawler();
+
+      // Parse min-stars option (default 1000)
+      const minStarsArg = process.argv.find(a => a.startsWith('--min-stars='));
+      const minStars = minStarsArg ? parseInt(minStarsArg.split('=')[1]) : 1000;
+
+      // Check budget
+      const popBudget = await popBudgetCrawler.checkBudget(0.20);
+      console.log(`API Budget: ${popBudget.remaining}/${popBudget.limit} remaining`);
+      if (!popBudget.ok) {
+        console.log(`\nAPI budget too low. Waiting for reset...`);
+        await popBudgetCrawler.waitForBudget(0.20);
+      }
+
+      const repos = await popCrawler.discoverPopularRepos(minStars);
+
+      console.log(`\nSaving ${repos.length} popular repos to discovered_repos...`);
+      let popSaved = 0;
+      for (const repo of repos) {
+        try {
+          await discoveredRepoQueries.upsert(popDb, {
+            id: `${repo.owner}/${repo.repo}`,
+            owner: repo.owner,
+            repo: repo.repo,
+            discoveredVia: 'popular-scan',
+            githubStars: repo.stars,
+            githubForks: repo.forks,
+            defaultBranch: repo.defaultBranch,
+            isArchived: repo.isArchived,
+          });
+          popSaved++;
+        } catch {
+          // Skip errors
+        }
+      }
+      console.log(`Saved ${popSaved} repositories`);
+      console.log('Run "deep-scan" next to scan their branches for skills');
+      break;
+    }
+
+    case 'commits-search': {
+      console.log('Searching for repos with recent SKILL.md commits...\n');
+      const csDb = createDb(process.env.DATABASE_URL);
+      const csCrawler = createCommitsSearchCrawler();
+      const csBudgetCrawler = createCrawler();
+
+      // Parse days-back option (default 30)
+      const daysBackArg = process.argv.find(a => a.startsWith('--days='));
+      const daysBack = daysBackArg ? parseInt(daysBackArg.split('=')[1]) : 30;
+
+      // Check budget
+      const csBudget = await csBudgetCrawler.checkBudget(0.20);
+      console.log(`API Budget: ${csBudget.remaining}/${csBudget.limit} remaining`);
+      if (!csBudget.ok) {
+        console.log(`\nAPI budget too low. Waiting for reset...`);
+        await csBudgetCrawler.waitForBudget(0.20);
+      }
+
+      const csRepos = await csCrawler.discoverReposFromCommits(daysBack);
+
+      console.log(`\nSaving ${csRepos.length} repos to discovered_repos...`);
+      let csSaved = 0;
+      for (const repo of csRepos) {
+        try {
+          await discoveredRepoQueries.upsert(csDb, {
+            id: `${repo.owner}/${repo.repo}`,
+            owner: repo.owner,
+            repo: repo.repo,
+            discoveredVia: 'commits-search',
+            githubStars: repo.stars,
+          });
+          csSaved++;
+        } catch {
+          // Skip errors
+        }
+      }
+      console.log(`Saved ${csSaved} repositories`);
+      console.log('Run "deep-scan" next to scan their branches for skills');
+      break;
+    }
+
     case 'deep-scan': {
       console.log('Deep scanning discovered repositories...\n');
       const deepDb = createDb(process.env.DATABASE_URL);
@@ -318,6 +431,22 @@ async function main() {
       // Parse budget option (default 20% reserve for website users)
       const deepBudgetArg = process.argv.find(a => a.startsWith('--budget='));
       const deepBudgetPct = deepBudgetArg ? parseInt(deepBudgetArg.split('=')[1]) / 100 : 0.20;
+
+      // Parse branch scanning options
+      const allBranchesFlag = process.argv.includes('--all-branches');
+      const branchesArg = process.argv.find(a => a.startsWith('--branches='));
+      const extraBranchPatterns: string[] = branchesArg
+        ? branchesArg.split('=')[1].split(',').map(p => p.trim()).filter(Boolean)
+        : [];
+      const deepScanOptions = { allBranches: allBranchesFlag, extraBranchPatterns };
+
+      if (allBranchesFlag) {
+        console.log('Branch mode: all branches');
+      } else if (extraBranchPatterns.length > 0) {
+        console.log(`Branch mode: smart + extra patterns [${extraBranchPatterns.join(', ')}]`);
+      } else {
+        console.log('Branch mode: smart (default + version/release branches)');
+      }
 
       // Check initial budget
       const deepInitialBudget = await skillCrawler.checkBudget(deepBudgetPct);
@@ -355,7 +484,7 @@ async function main() {
 
         try {
           console.log(`\nScanning ${repo.owner}/${repo.repo}...`);
-          const skills = await deepCrawler.scanRepository(repo.owner, repo.repo);
+          const skills = await deepCrawler.scanRepository(repo.owner, repo.repo, deepScanOptions);
 
           // Mark as scanned
           await discoveredRepoQueries.markScanned(
@@ -646,19 +775,15 @@ async function main() {
         }
 
         try {
-          // Parse repository URL
-          const url = new URL(request.repositoryUrl);
-          const pathParts = url.pathname.split('/').filter(Boolean);
-          const owner = pathParts[0];
-          const repo = pathParts[1];
+          // Parse repository URL (may include branch in /tree/{branch} path)
+          const { owner, repo, branch: urlBranch } = parseGitHubRepoUrl(request.repositoryUrl);
 
-          if (!owner || !repo) {
-            throw new Error('Invalid repository URL');
-          }
-
-          // Get default branch
+          // Get repo metadata for default branch
           const repoMeta = await addCrawler.getRepoMetadata(owner, repo);
-          const branch = repoMeta.defaultBranch;
+          const branch = urlBranch ?? repoMeta.defaultBranch;
+          if (urlBranch) {
+            console.log(`  Branch: ${branch} (from URL)`);
+          }
 
           // Parse skill paths (comma-separated)
           const skillPaths = request.skillPath.split(',').map((p: string) => p.trim());

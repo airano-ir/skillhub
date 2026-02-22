@@ -89,6 +89,7 @@ export async function indexSkill(
     triggers: analysis.skill.metadata.triggers,
     githubStars: content.repoMeta.stars,
     githubForks: content.repoMeta.forks,
+    repoCreatedAt: new Date(content.repoMeta.createdAt),
     securityScore: analysis.security.score,
     securityStatus: analysis.security.status,
     qualityScore: analysis.quality.overall,

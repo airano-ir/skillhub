@@ -37,6 +37,9 @@ type DB = PostgresJsDatabase<typeof schema>;
  */
 const browseReadyFilter = sql`(${skills.isDuplicate} = false)`;
 
+/** Minimum repo age gap (in days) to trust repo_created_at over stars for duplicate detection */
+const REPO_AGE_THRESHOLD_DAYS = 75;
+
 /**
  * Skill queries
  */
@@ -613,6 +616,7 @@ export const skillQueries = {
           triggers: skill.triggers,
           githubStars: skill.githubStars,
           githubForks: skill.githubForks,
+          repoCreatedAt: skill.repoCreatedAt,
           securityScore: skill.securityScore,
           securityStatus: skill.securityStatus,
           qualityScore: skill.qualityScore,
@@ -1196,7 +1200,13 @@ export async function runPostCrawlCuration(db: DB): Promise<{ classified: number
   `);
   results.classified = (classResult as unknown as { rowCount: number }).rowCount ?? 0;
 
-  // Step 4: Mark duplicates by content_hash (keep canonical = most stars, prioritizing standalone over aggregator)
+  // Step 4: Mark duplicates by content_hash with 6-tier tie-breaker
+  // Tier 1: standalone/collection > aggregator
+  // Tier 2: repo age gap > 75 days → older repo wins (likely original creator)
+  // Tier 3: more stars (when age gap small or NULL)
+  // Tier 4: more forks
+  // Tier 5: older repo_created_at (minor gap)
+  // Tier 6: older created_at (fallback for NULL repo_created_at)
   const dupResult = await db.execute(sql`
     UPDATE skills s SET is_duplicate = true
     WHERE s.is_blocked = false
@@ -1208,13 +1218,34 @@ export async function runPostCrawlCuration(db: DB): Promise<{ classified: number
           AND s2.is_blocked = false
           AND s2.id != s.id
           AND (
+            -- Tier 1: standalone/collection beats aggregator
             (s2.skill_type != 'aggregator' AND s.skill_type = 'aggregator')
             OR (
               (s2.skill_type = 'aggregator') = (s.skill_type = 'aggregator')
               AND (
-                s2.github_stars > s.github_stars
-                OR (s2.github_stars = s.github_stars AND s2.github_forks > s.github_forks)
-                OR (s2.github_stars = s.github_stars AND s2.github_forks = s.github_forks AND s2.created_at < s.created_at)
+                -- Tier 2: significant age gap (>75 days) → older repo wins
+                (s2.repo_created_at IS NOT NULL AND s.repo_created_at IS NOT NULL
+                 AND ABS(EXTRACT(EPOCH FROM (s2.repo_created_at - s.repo_created_at))) > ${REPO_AGE_THRESHOLD_DAYS} * 86400
+                 AND s2.repo_created_at < s.repo_created_at)
+                -- Tiers 3-6: when age gap <= threshold or NULL
+                OR (
+                  (s2.repo_created_at IS NULL OR s.repo_created_at IS NULL
+                   OR ABS(EXTRACT(EPOCH FROM (s2.repo_created_at - s.repo_created_at))) <= ${REPO_AGE_THRESHOLD_DAYS} * 86400)
+                  AND (
+                    -- Tier 3: more stars
+                    s2.github_stars > s.github_stars
+                    -- Tier 4: more forks
+                    OR (s2.github_stars = s.github_stars AND s2.github_forks > s.github_forks)
+                    -- Tier 5: older repo_created_at (minor gap)
+                    OR (s2.github_stars = s.github_stars AND s2.github_forks = s.github_forks
+                        AND s2.repo_created_at IS NOT NULL AND s.repo_created_at IS NOT NULL
+                        AND s2.repo_created_at < s.repo_created_at)
+                    -- Tier 6: older created_at (fallback for NULL repo_created_at)
+                    OR (s2.github_stars = s.github_stars AND s2.github_forks = s.github_forks
+                        AND (s2.repo_created_at IS NULL OR s.repo_created_at IS NULL)
+                        AND s2.created_at < s.created_at)
+                  )
+                )
               )
             )
           )

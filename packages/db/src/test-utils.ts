@@ -46,6 +46,7 @@ export function createTestSkill(overrides: Partial<SkillInsert> = {}): SkillInse
     contentHash: 'abc123',
     createdAt: new Date(),
     updatedAt: new Date(),
+    repoCreatedAt: null,
     indexedAt: new Date(),
     ...overrides,
   };

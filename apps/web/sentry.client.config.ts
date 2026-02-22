@@ -31,18 +31,19 @@ Sentry.init({
 
   // Filter out common non-actionable errors
   ignoreErrors: [
-    // AbortError during navigation is expected browser behavior when
-    // Next.js RSC prefetch/streaming requests get cancelled mid-flight
-    "AbortError: BodyStreamBuffer was aborted",
+    // AbortError during navigation — Next.js RSC prefetch/streaming cancelled mid-flight
     "AbortError",
+    // Network stream errors (Firefox)
+    "Error in input stream",
+    // Network fetch failures (Safari / mobile)
+    "Load failed",
+    // Browser extension noise (translation/accessibility extensions)
+    /Object Not Found Matching Id/,
+    // ResizeObserver loop limit — browser quirk, not actionable
+    "ResizeObserver",
   ],
 
   beforeSend(event, hint) {
-    // Ignore ResizeObserver errors (browser quirk, not actionable)
-    if (event.exception?.values?.[0]?.value?.includes("ResizeObserver")) {
-      return null;
-    }
-
     // Log to console in development for debugging
     if (process.env.NODE_ENV === "development") {
       console.error("[Sentry]", hint.originalException || hint.syntheticException);

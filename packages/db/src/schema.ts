@@ -102,6 +102,7 @@ export const skills = pgTable(
     // Timestamps
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
+    repoCreatedAt: timestamp('repo_created_at'),
     indexedAt: timestamp('indexed_at'),
     lastDownloadedAt: timestamp('last_downloaded_at'),
   },
