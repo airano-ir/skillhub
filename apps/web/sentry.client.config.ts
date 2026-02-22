@@ -37,6 +37,8 @@ Sentry.init({
     "Error in input stream",
     // Network fetch failures (Safari / mobile)
     "Load failed",
+    // Generic network errors (client connectivity issues)
+    "network error",
     // Browser extension noise (translation/accessibility extensions)
     /Object Not Found Matching Id/,
     // ResizeObserver loop limit — browser quirk, not actionable

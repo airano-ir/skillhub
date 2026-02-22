@@ -8,6 +8,7 @@ import { createDb, skillQueries } from '@skillhub/db';
 import { toPersianNumber } from '@/lib/format-number';
 import { Pagination } from '@/components/BrowseFilters';
 import { getPageAlternates } from '@/lib/seo';
+import { getOrSetCache, cacheKeys, cacheTTL } from '@/lib/cache';
 
 
 // Force dynamic rendering to fetch fresh data from database
@@ -41,36 +42,40 @@ function formatTimeAgo(date: Date | null, locale: string): string {
   return 'Just now';
 }
 
-// Get skills based on tab with pagination
+// Get skills based on tab with pagination and Redis caching (30 min TTL)
 async function getSkillsForTab(tab: 'new' | 'updated', page: number, limit: number) {
   try {
-    const db = createDb();
-    const offset = (page - 1) * limit;
+    return await getOrSetCache(cacheKeys.newSkills(tab, page), cacheTTL.newSkills, async () => {
+      const db = createDb();
+      const offset = (page - 1) * limit;
 
-    if (tab === 'new') {
-      const skills = await skillQueries.getNewSkills(db, limit, offset);
-      const total = await skillQueries.countNewSkills(db);
-      return { skills, total };
-    } else {
-      const skills = await skillQueries.getUpdatedSkills(db, limit, offset);
-      const total = await skillQueries.countUpdatedSkills(db);
-      return { skills, total };
-    }
+      if (tab === 'new') {
+        const skills = await skillQueries.getNewSkills(db, limit, offset);
+        const total = await skillQueries.countNewSkills(db);
+        return { skills, total };
+      } else {
+        const skills = await skillQueries.getUpdatedSkills(db, limit, offset);
+        const total = await skillQueries.countUpdatedSkills(db);
+        return { skills, total };
+      }
+    });
   } catch (error) {
     console.error('Error fetching skills:', error);
     return { skills: [], total: 0 };
   }
 }
 
-// Get counts for both tabs
+// Get counts for both tabs with Redis caching (30 min TTL)
 async function getTabCounts() {
   try {
-    const db = createDb();
-    const [newCount, updatedCount] = await Promise.all([
-      skillQueries.countNewSkills(db),
-      skillQueries.countUpdatedSkills(db),
-    ]);
-    return { newCount, updatedCount };
+    return await getOrSetCache(cacheKeys.newSkillsCounts(), cacheTTL.newSkills, async () => {
+      const db = createDb();
+      const [newCount, updatedCount] = await Promise.all([
+        skillQueries.countNewSkills(db),
+        skillQueries.countUpdatedSkills(db),
+      ]);
+      return { newCount, updatedCount };
+    });
   } catch (error) {
     console.error('Error fetching counts:', error);
     return { newCount: 0, updatedCount: 0 };

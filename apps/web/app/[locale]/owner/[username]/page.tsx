@@ -9,6 +9,7 @@ import { ExternalLink, Download, Package, Eye, GitFork, ArrowUpDown, FolderGit2 
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { getPageAlternates } from '@/lib/seo';
+import { getOrSetCache, cacheKeys, cacheTTL } from '@/lib/cache';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,11 +50,15 @@ export default async function OwnerPage({ params, searchParams }: OwnerPageProps
 
   const db = createDb();
 
-  // Fetch stats, count, and repo list in parallel
+  // Fetch stats and repo list with caching (30 min TTL), count is dynamic per filter
   const [stats, totalSkills, ownerRepos] = await Promise.all([
-    skillQueries.getOwnerStats(db, username),
+    getOrSetCache(cacheKeys.ownerStats(username), cacheTTL.owner, () =>
+      skillQueries.getOwnerStats(db, username)
+    ),
     skillQueries.countByOwner(db, username, activeRepo || undefined),
-    skillQueries.getOwnerRepos(db, username),
+    getOrSetCache(cacheKeys.ownerRepos(username), cacheTTL.owner, () =>
+      skillQueries.getOwnerRepos(db, username)
+    ),
   ]);
 
   if (stats.totalSkills === 0) {

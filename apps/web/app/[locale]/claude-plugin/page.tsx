@@ -18,6 +18,7 @@ import { Footer } from '@/components/Footer';
 import { EarlyAccessForm } from '@/components/EarlyAccessForm';
 import { createDb, skills, sql } from '@skillhub/db';
 import { formatCompactNumber } from '@/lib/format-number';
+import { getOrSetCache, cacheKeys, cacheTTL } from '@/lib/cache';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,11 +43,13 @@ export async function generateMetadata({
 
 async function getStats() {
   try {
-    const db = createDb();
-    const skillsResult = await db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(skills);
-    return skillsResult[0]?.count ?? 0;
+    return await getOrSetCache(cacheKeys.pageCount('claude-plugin'), cacheTTL.pageCount, async () => {
+      const db = createDb();
+      const skillsResult = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(skills);
+      return skillsResult[0]?.count ?? 0;
+    });
   } catch {
     return 119000;
   }

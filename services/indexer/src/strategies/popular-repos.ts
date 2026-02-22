@@ -111,7 +111,7 @@ export class PopularReposCrawler {
         for (const repo of response.data.items) {
           if (!repo.archived) {
             results.push({
-              owner: repo.owner.login,
+              owner: repo.owner!.login,
               repo: repo.name,
               stars: repo.stargazers_count,
               forks: repo.forks_count,

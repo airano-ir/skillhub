@@ -8,75 +8,70 @@ import { SkillCard } from '@/components/SkillCard';
 import { createDb, categoryQueries, skillQueries, skills, sql } from '@skillhub/db';
 import { formatCompactNumber } from '@/lib/format-number';
 import { getPageAlternates } from '@/lib/seo';
+import { getOrSetCache, cacheKeys, cacheTTL } from '@/lib/cache';
 
 
 // Force dynamic rendering to fetch fresh data from database
 export const dynamic = 'force-dynamic';
 
-// Get stats directly from database
+// Get stats with Redis caching (1 hour TTL)
 async function getStats() {
   try {
-    const db = createDb();
+    return await getOrSetCache(cacheKeys.homeStats(), cacheTTL.stats, async () => {
+      const db = createDb();
 
-    // Browse-ready filter: exclude duplicates (matches browseReadyFilter in queries.ts)
-    const browseReady = sql`${skills.isDuplicate} = false`;
+      // Browse-ready filter: exclude duplicates (matches browseReadyFilter in queries.ts)
+      const browseReady = sql`${skills.isDuplicate} = false`;
 
-    // Get total skills count (browse-ready, SKILL.md only)
-    const skillsResult = await db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(skills)
-      .where(sql`${skills.sourceFormat} = 'skill.md' AND ${skills.isBlocked} = false AND ${browseReady}`);
-    const totalSkills = skillsResult[0]?.count ?? 0;
+      // Run all independent count queries in parallel
+      const [skillsResult, downloadsResult, categories, contributorsResult, totalIndexedResult] = await Promise.all([
+        // Get total skills count (browse-ready, SKILL.md only)
+        db.select({ count: sql<number>`count(*)::int` })
+          .from(skills)
+          .where(sql`${skills.sourceFormat} = 'skill.md' AND ${skills.isBlocked} = false AND ${browseReady}`),
+        // Get total downloads (ALL skills — downloads are real user actions)
+        db.select({ sum: sql<number>`coalesce(sum(${skills.downloadCount}), 0)::int` })
+          .from(skills),
+        // Get total categories
+        categoryQueries.getAll(db),
+        // Get unique contributors (browse-ready skills only)
+        db.select({ count: sql<number>`count(distinct ${skills.githubOwner})::int` })
+          .from(skills)
+          .where(browseReady),
+        // Get total indexed skills (all, before curation) for curation note
+        db.select({ count: sql<number>`count(*)::int` })
+          .from(skills)
+          .where(sql`${skills.isBlocked} = false`),
+      ]);
 
-    // Get total downloads (ALL skills — downloads are real user actions)
-    const downloadsResult = await db
-      .select({ sum: sql<number>`coalesce(sum(${skills.downloadCount}), 0)::int` })
-      .from(skills);
-    const totalDownloads = downloadsResult[0]?.sum ?? 0;
-
-    // Get total categories
-    const categories = await categoryQueries.getAll(db);
-    const totalCategories = categories.length;
-
-    // Get unique contributors (browse-ready skills only)
-    const contributorsResult = await db
-      .select({ count: sql<number>`count(distinct ${skills.githubOwner})::int` })
-      .from(skills)
-      .where(browseReady);
-    const totalContributors = contributorsResult[0]?.count ?? 0;
-
-    // Get total indexed skills (all, before curation) for curation note
-    const totalIndexedResult = await db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(skills)
-      .where(sql`${skills.isBlocked} = false`);
-    const totalIndexed = totalIndexedResult[0]?.count ?? 0;
-
-    return {
-      totalSkills,
-      totalDownloads,
-      totalCategories,
-      totalContributors,
-      totalIndexed,
-      platforms: 5,
-    };
+      return {
+        totalSkills: skillsResult[0]?.count ?? 0,
+        totalDownloads: downloadsResult[0]?.sum ?? 0,
+        totalCategories: categories.length,
+        totalContributors: contributorsResult[0]?.count ?? 0,
+        totalIndexed: totalIndexedResult[0]?.count ?? 0,
+        platforms: 5,
+      };
+    });
   } catch (error) {
     console.error('Error fetching stats:', error);
     return null;
   }
 }
 
-// Get featured skills directly from database
+// Get featured skills with Redis caching (2 hour TTL)
 async function getFeaturedSkills() {
   try {
-    const db = createDb();
-    // Get featured skills, or top skills by popularity if none are featured
-    let featuredSkills = await skillQueries.getFeatured(db, 6);
-    if (featuredSkills.length === 0) {
-      // Fallback to adaptive popularity with owner/repo diversity
-      featuredSkills = await skillQueries.getFeaturedWithDiversity(db, 6, 2, 3);
-    }
-    return featuredSkills;
+    return await getOrSetCache(cacheKeys.homeFeatured(), cacheTTL.featured, async () => {
+      const db = createDb();
+      // Get featured skills, or top skills by popularity if none are featured
+      let featuredSkills = await skillQueries.getFeatured(db, 6);
+      if (featuredSkills.length === 0) {
+        // Fallback to adaptive popularity with owner/repo diversity
+        featuredSkills = await skillQueries.getFeaturedWithDiversity(db, 6, 2, 3);
+      }
+      return featuredSkills;
+    });
   } catch (error) {
     console.error('Error fetching featured skills:', error);
     return [];

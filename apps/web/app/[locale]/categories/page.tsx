@@ -32,6 +32,7 @@ import {
 import { createDb, categoryQueries } from '@skillhub/db';
 import { formatNumber } from '@/lib/format-number';
 import { getPageAlternates } from '@/lib/seo';
+import { getOrSetCache, cacheKeys, cacheTTL } from '@/lib/cache';
 
 
 // Force dynamic rendering to fetch fresh data from database
@@ -87,11 +88,13 @@ const parentColorMap: Record<string, string> = {
   'specialized': 'bg-gray-50 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
 };
 
-// Get categories hierarchically from database
+// Get categories hierarchically with Redis caching (12 hour TTL)
 async function getHierarchicalCategories() {
   try {
-    const db = createDb();
-    return await categoryQueries.getHierarchical(db);
+    return await getOrSetCache(cacheKeys.categoriesHierarchical(), cacheTTL.categories, async () => {
+      const db = createDb();
+      return await categoryQueries.getHierarchical(db);
+    });
   } catch (error) {
     console.error('Error fetching categories:', error);
     return [];

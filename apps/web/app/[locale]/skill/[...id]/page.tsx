@@ -15,7 +15,7 @@ import { ShareButton } from '@/components/ShareButton';
 import { createDb, skillQueries } from '@skillhub/db';
 import { FORMAT_LABELS } from 'skillhub-core';
 import { formatCompactNumber } from '@/lib/format-number';
-import { shouldCountView } from '@/lib/cache';
+import { shouldCountView, getOrSetCache, cacheKeys, cacheTTL } from '@/lib/cache';
 import type { Metadata } from 'next';
 import { getPageAlternates } from '@/lib/seo';
 
@@ -46,11 +46,13 @@ interface SkillPageProps {
   params: Promise<{ locale: string; id: string[] }>;
 }
 
-// Get skill directly from database
+// Get skill with Redis caching (1 hour TTL)
 async function getSkill(skillId: string) {
   try {
-    const db = createDb();
-    return await skillQueries.getById(db, skillId);
+    return await getOrSetCache(cacheKeys.skillDetail(skillId), cacheTTL.skill, async () => {
+      const db = createDb();
+      return await skillQueries.getById(db, skillId);
+    });
   } catch (error) {
     console.error('Error fetching skill:', error);
     return null;

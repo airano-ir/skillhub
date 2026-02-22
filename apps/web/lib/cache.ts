@@ -129,12 +129,41 @@ export async function isCacheAvailable(): Promise<boolean> {
   }
 }
 
+/**
+ * Get cached data or fetch and cache it.
+ * If Redis is unavailable, falls back to fetcher directly (graceful degradation).
+ */
+export async function getOrSetCache<T>(
+  key: string,
+  ttlSeconds: number,
+  fetcher: () => Promise<T>
+): Promise<T> {
+  const cached = await getCached<T>(key);
+  if (cached !== null) return cached;
+
+  const data = await fetcher();
+  // Fire-and-forget cache write
+  setCache(key, data, ttlSeconds).catch(() => {});
+  return data;
+}
+
 // Cache key builders for consistency
 export const cacheKeys = {
   stats: () => 'stats:global',
+  homeStats: () => 'page:home:stats',
+  homeFeatured: () => 'page:home:featured',
   categories: () => 'categories:all',
+  categoriesHierarchical: () => 'categories:hierarchical',
   featuredSkills: () => 'skills:featured',
+  featuredPage: (page: number) => `page:featured:${page}`,
   recentSkills: () => 'skills:recent',
+  newSkills: (tab: string, page: number) => `page:new:${tab}:${page}`,
+  newSkillsCounts: () => 'page:new:counts',
+  ownerStats: (username: string) => `page:owner:${username}:stats`,
+  ownerRepos: (username: string) => `page:owner:${username}:repos`,
+  skillDetail: (id: string) => `page:skill:${id.replace(/\//g, ':')}`,
+  skillRatings: (id: string, limit: number, offset: number) => `ratings:${id.replace(/\//g, ':')}:${limit}:${offset}`,
+  pageCount: (page: string) => `page:${page}:count`,
   searchSkills: (hash: string) => `skills:search:${hash}`,
   skill: (id: string) => `skill:${id.replace(/\//g, ':')}`,
   skillView: (skillId: string, ip: string) => `view:${skillId.replace(/\//g, ':')}:${ip}`,
@@ -149,6 +178,10 @@ export const cacheTTL = {
   recent: 60 * 60,          // 1 hour
   search: 30 * 60,          // 30 minutes
   skill: 60 * 60,           // 1 hour
+  newSkills: 30 * 60,       // 30 minutes
+  owner: 30 * 60,           // 30 minutes
+  ratings: 15 * 60,         // 15 minutes
+  pageCount: 60 * 60,       // 1 hour
   view: 60 * 60,            // 1 hour - same IP can only count as 1 view per hour
   download: 5 * 60,         // 5 minutes - same IP can only count as 1 download per 5 min
 };

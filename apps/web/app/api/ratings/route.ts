@@ -3,6 +3,7 @@ import { createDb, ratingQueries, skillQueries, userQueries } from '@skillhub/db
 import { auth } from '@/lib/auth';
 import { withRateLimit, createRateLimitResponse, createRateLimitHeaders } from '@/lib/rate-limit';
 import { sanitizeReview } from '@/lib/sanitize';
+import { getOrSetCache, invalidateCache, cacheKeys, cacheTTL } from '@/lib/cache';
 
 const db = createDb();
 
@@ -28,27 +29,34 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'skillId is required' }, { status: 400 });
     }
 
-    const ratings = await ratingQueries.getForSkill(db, skillId, limit, offset);
-    const skill = await skillQueries.getById(db, skillId);
+    const data = await getOrSetCache(
+      cacheKeys.skillRatings(skillId, limit, offset),
+      cacheTTL.ratings,
+      async () => {
+        const ratings = await ratingQueries.getForSkill(db, skillId, limit, offset);
+        const skill = await skillQueries.getById(db, skillId);
+        return {
+          ratings: ratings.map((r) => ({
+            id: r.rating.id,
+            rating: r.rating.rating,
+            review: r.rating.review,
+            createdAt: r.rating.createdAt,
+            updatedAt: r.rating.updatedAt,
+            user: {
+              id: r.user.id,
+              username: r.user.username,
+              avatarUrl: r.user.avatarUrl,
+            },
+          })),
+          summary: {
+            average: skill?.rating || 0,
+            count: skill?.ratingCount || 0,
+          },
+        };
+      }
+    );
 
-    return NextResponse.json({
-      ratings: ratings.map((r) => ({
-        id: r.rating.id,
-        rating: r.rating.rating,
-        review: r.rating.review,
-        createdAt: r.rating.createdAt,
-        updatedAt: r.rating.updatedAt,
-        user: {
-          id: r.user.id,
-          username: r.user.username,
-          avatarUrl: r.user.avatarUrl,
-        },
-      })),
-      summary: {
-        average: skill?.rating || 0,
-        count: skill?.ratingCount || 0,
-      },
-    }, {
+    return NextResponse.json(data, {
       headers: createRateLimitHeaders(rateLimitResult),
     });
   } catch (error) {
@@ -102,6 +110,12 @@ export async function POST(request: NextRequest) {
       rating: ratingValue,
       review: sanitizeReview(review) ?? undefined,
     });
+
+    // Invalidate ratings and skill detail caches
+    await Promise.all([
+      invalidateCache(cacheKeys.skillRatings(skillId, 10, 0)),
+      invalidateCache(cacheKeys.skillDetail(skillId)),
+    ]);
 
     // Get updated skill aggregates
     const updatedSkill = await skillQueries.getById(db, skillId);

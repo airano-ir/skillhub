@@ -7,18 +7,21 @@ import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { createDb, skills, sql } from '@skillhub/db';
 import { formatPromptSkillCount } from '@/lib/format-number';
 import { getPageAlternates } from '@/lib/seo';
+import { getOrSetCache, cacheKeys, cacheTTL } from '@/lib/cache';
 
 
 export const dynamic = 'force-dynamic';
 
 async function getSkillCount(): Promise<string> {
   try {
-    const db = createDb();
-    const result = await db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(skills)
-      .where(sql`${skills.isDuplicate} = false`);
-    return formatPromptSkillCount(result[0]?.count ?? 16000);
+    return await getOrSetCache(cacheKeys.pageCount('getting-started'), cacheTTL.pageCount, async () => {
+      const db = createDb();
+      const result = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(skills)
+        .where(sql`${skills.isDuplicate} = false`);
+      return formatPromptSkillCount(result[0]?.count ?? 16000);
+    });
   } catch {
     return '16,000+';
   }

@@ -6,6 +6,7 @@ import { BrowseFilters, SearchBar, Pagination, ActiveFilters, EmptyState } from 
 import { SkillCard } from '@/components/SkillCard';
 import { toPersianNumber } from '@/lib/format-number';
 import { getPageAlternates } from '@/lib/seo';
+import { getOrSetCache, cacheKeys, cacheTTL } from '@/lib/cache';
 
 
 // Force dynamic rendering to fetch fresh data from database
@@ -108,7 +109,7 @@ export default async function BrowsePage({ params, searchParams }: BrowsePagePro
     { id: 'rating', name: t('filters.sortOptions.rating') },
   ];
 
-  // Fetch categories hierarchically for filter dropdown with translations
+  // Fetch categories hierarchically for filter dropdown with translations (cached 12h)
   const tCategories = await getTranslations('categories');
   type HierarchicalCategory = {
     id: string;
@@ -119,8 +120,14 @@ export default async function BrowsePage({ params, searchParams }: BrowsePagePro
   };
   let categories: HierarchicalCategory[] = [];
   try {
-    const db = createDb();
-    const rawCategories = await categoryQueries.getHierarchical(db);
+    const rawCategories = await getOrSetCache(
+      cacheKeys.categoriesHierarchical(),
+      cacheTTL.categories,
+      async () => {
+        const db = createDb();
+        return await categoryQueries.getHierarchical(db);
+      }
+    );
     categories = rawCategories.map(parent => ({
       id: parent.id,
       name: tCategories(`parents.${parent.slug}`) || parent.name,

@@ -6,6 +6,7 @@ import { toPersianNumber } from '@/lib/format-number';
 import { Pagination } from '@/components/BrowseFilters';
 import { SkillCard } from '@/components/SkillCard';
 import { getPageAlternates } from '@/lib/seo';
+import { getOrSetCache, cacheKeys, cacheTTL } from '@/lib/cache';
 
 
 // Force dynamic rendering to fetch fresh data from database
@@ -16,23 +17,25 @@ interface FeaturedPageProps {
   searchParams: Promise<{ page?: string }>;
 }
 
-// Get featured skills with pagination
+// Get featured skills with pagination and Redis caching (2 hour TTL)
 async function getFeaturedSkills(page: number, limit: number) {
   try {
-    const db = createDb();
-    const offset = (page - 1) * limit;
+    return await getOrSetCache(cacheKeys.featuredPage(page), cacheTTL.featured, async () => {
+      const db = createDb();
+      const offset = (page - 1) * limit;
 
-    // Try featured first, fall back to combined popularity score
-    let featuredSkills = await skillQueries.getFeatured(db, limit, offset);
-    let total = await skillQueries.countFeatured(db);
+      // Try featured first, fall back to combined popularity score
+      let featuredSkills = await skillQueries.getFeatured(db, limit, offset);
+      let total = await skillQueries.countFeatured(db);
 
-    // If no featured skills, use adaptive popularity with owner/repo diversity
-    if (total === 0) {
-      featuredSkills = await skillQueries.getFeaturedWithDiversity(db, limit, 2, 3);
-      total = await skillQueries.countAll(db);
-    }
+      // If no featured skills, use adaptive popularity with owner/repo diversity
+      if (total === 0) {
+        featuredSkills = await skillQueries.getFeaturedWithDiversity(db, limit, 2, 3);
+        total = await skillQueries.countAll(db);
+      }
 
-    return { skills: featuredSkills, total };
+      return { skills: featuredSkills, total };
+    });
   } catch (error) {
     console.error('Error fetching featured skills:', error);
     return { skills: [], total: 0 };
