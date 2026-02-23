@@ -14,6 +14,7 @@ import {
   removalRequests,
   addRequests,
   emailSubscriptions,
+  skillReviews,
 } from './schema.js';
 
 import type * as schema from './schema.js';
@@ -642,6 +643,10 @@ export const skillQueries = {
         updatedAt: new Date(),
         // Clear cachedFiles if commitSha changed (on insert, it's null anyway)
         cachedFiles: shouldClearCache ? null : undefined,
+        // Auto-score new skills when crawler provides both security and quality
+        reviewStatus: (skill.securityStatus && skill.qualityScore != null)
+          ? 'auto-scored'
+          : skill.reviewStatus,
       })
       .onConflictDoUpdate({
         target: skills.id,
@@ -672,9 +677,17 @@ export const skillQueries = {
           // which only updates it when content-related columns actually change
           // Clear cachedFiles if commitSha changed
           ...(shouldClearCache ? { cachedFiles: null } : {}),
-          // Re-review mechanism (Phase 6.4): mark previously reviewed skills for re-review
-          // when their content changes. Only affects 'verified' and 'ai-reviewed' skills.
-          ...(shouldTriggerReReview ? { reviewStatus: 'needs-re-review' } : {}),
+          // Review status management:
+          // 1. Re-review (Phase 6.4): mark previously reviewed skills for re-review
+          //    when their content changes. Only affects 'verified' and 'ai-reviewed' skills.
+          // 2. Auto-score: when crawler provides both securityStatus and qualityScore,
+          //    set reviewStatus='auto-scored' so skill enters the review pipeline.
+          //    Only for new/unreviewed skills (don't overwrite existing review status).
+          ...(shouldTriggerReReview
+            ? { reviewStatus: 'needs-re-review' }
+            : (skill.securityStatus && skill.qualityScore != null)
+              ? { reviewStatus: sql`CASE WHEN ${skills.reviewStatus} IS NULL OR ${skills.reviewStatus} = 'unreviewed' THEN 'auto-scored' ELSE ${skills.reviewStatus} END` }
+              : {}),
         },
       })
       .returning();
@@ -2245,3 +2258,368 @@ export const emailSubscriptionQueries = {
   },
 };
 
+
+/**
+ * Skill review queries (AI review pipeline — Phase 7)
+ */
+export const skillReviewQueries = {
+  /**
+   * Submit a review for a skill (insert new review row)
+   */
+  create: async (
+    db: DB,
+    data: {
+      skillId: string;
+      reviewer?: string;
+      aiScore?: number;
+      instructionQuality?: number;
+      descriptionPrecision?: number;
+      usefulness?: number;
+      technicalSoundness?: number;
+      reviewNotes?: string;
+      suggestedCategories?: string[];
+      blogWorthy?: boolean;
+      collectionCandidate?: string;
+      needsImprovement?: string;
+      i18nPriority?: number;
+      contentHashAtReview?: string;
+      reviewVersion?: number;
+    }
+  ) => {
+    const result = await db
+      .insert(skillReviews)
+      .values({
+        skillId: data.skillId,
+        reviewer: data.reviewer ?? 'claude-code',
+        aiScore: data.aiScore,
+        instructionQuality: data.instructionQuality,
+        descriptionPrecision: data.descriptionPrecision,
+        usefulness: data.usefulness,
+        technicalSoundness: data.technicalSoundness,
+        reviewNotes: data.reviewNotes,
+        suggestedCategories: data.suggestedCategories,
+        blogWorthy: data.blogWorthy ?? false,
+        collectionCandidate: data.collectionCandidate,
+        needsImprovement: data.needsImprovement,
+        i18nPriority: data.i18nPriority ?? 0,
+        contentHashAtReview: data.contentHashAtReview,
+        reviewVersion: data.reviewVersion ?? 1,
+      })
+      .returning();
+    return result[0];
+  },
+
+  /**
+   * Submit multiple reviews in a batch
+   */
+  createBatch: async (
+    db: DB,
+    reviews: Array<{
+      skillId: string;
+      reviewer?: string;
+      aiScore?: number;
+      instructionQuality?: number;
+      descriptionPrecision?: number;
+      usefulness?: number;
+      technicalSoundness?: number;
+      reviewNotes?: string;
+      suggestedCategories?: string[];
+      blogWorthy?: boolean;
+      collectionCandidate?: string;
+      needsImprovement?: string;
+      i18nPriority?: number;
+      contentHashAtReview?: string;
+      reviewVersion?: number;
+    }>
+  ) => {
+    return db
+      .insert(skillReviews)
+      .values(
+        reviews.map((r) => ({
+          skillId: r.skillId,
+          reviewer: r.reviewer ?? 'claude-code',
+          aiScore: r.aiScore,
+          instructionQuality: r.instructionQuality,
+          descriptionPrecision: r.descriptionPrecision,
+          usefulness: r.usefulness,
+          technicalSoundness: r.technicalSoundness,
+          reviewNotes: r.reviewNotes,
+          suggestedCategories: r.suggestedCategories,
+          blogWorthy: r.blogWorthy ?? false,
+          collectionCandidate: r.collectionCandidate,
+          needsImprovement: r.needsImprovement,
+          i18nPriority: r.i18nPriority ?? 0,
+          contentHashAtReview: r.contentHashAtReview,
+          reviewVersion: r.reviewVersion ?? 1,
+        }))
+      )
+      .returning();
+  },
+
+  /**
+   * Get latest review for a skill
+   */
+  getLatestBySkillId: async (db: DB, skillId: string) => {
+    const result = await db
+      .select()
+      .from(skillReviews)
+      .where(eq(skillReviews.skillId, skillId))
+      .orderBy(desc(skillReviews.reviewedAt))
+      .limit(1);
+    return result[0] ?? null;
+  },
+
+  /**
+   * Get all reviews for a skill (history)
+   */
+  getAllBySkillId: async (db: DB, skillId: string) => {
+    return db
+      .select()
+      .from(skillReviews)
+      .where(eq(skillReviews.skillId, skillId))
+      .orderBy(desc(skillReviews.reviewedAt));
+  },
+
+  /**
+   * Get review by id
+   */
+  getById: async (db: DB, id: number) => {
+    const result = await db
+      .select()
+      .from(skillReviews)
+      .where(eq(skillReviews.id, id))
+      .limit(1);
+    return result[0] ?? null;
+  },
+
+  /**
+   * Get blog-worthy skills (join with skills for details)
+   */
+  getBlogCandidates: async (db: DB, limit = 50) => {
+    return db
+      .select({
+        reviewId: skillReviews.id,
+        skillId: skillReviews.skillId,
+        aiScore: skillReviews.aiScore,
+        reviewNotes: skillReviews.reviewNotes,
+        suggestedCategories: skillReviews.suggestedCategories,
+        skillName: skills.name,
+        skillDescription: skills.description,
+        githubStars: skills.githubStars,
+        reviewStatus: skills.reviewStatus,
+      })
+      .from(skillReviews)
+      .innerJoin(skills, eq(skillReviews.skillId, skills.id))
+      .where(eq(skillReviews.blogWorthy, true))
+      .orderBy(desc(skillReviews.aiScore))
+      .limit(limit);
+  },
+
+  /**
+   * Get review stats (counts by review_status)
+   */
+  getStats: async (db: DB) => {
+    const result = await db
+      .select({
+        reviewStatus: skills.reviewStatus,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(skills)
+      .where(browseReadyFilter)
+      .groupBy(skills.reviewStatus);
+
+    const stats: Record<string, number> = {};
+    for (const row of result) {
+      stats[row.reviewStatus ?? 'unreviewed'] = row.count;
+    }
+    return stats;
+  },
+
+  /**
+   * Count skills pending AI review (for total_pending in API response)
+   * Only counts standard SKILL.md format skills
+   */
+  countPending: async (
+    db: DB,
+    options: { minQuality?: number; securityPass?: boolean } = {}
+  ) => {
+    const { minQuality = 50, securityPass = true } = options;
+
+    const conditions = [
+      browseReadyFilter,
+      eq(skills.isBlocked, false),
+      eq(skills.reviewStatus, 'auto-scored'),
+      eq(skills.sourceFormat, 'skill.md'),
+      // Pre-filters via safe SQL function (handles invalid UTF-8 gracefully)
+      eq(skills.isDeprecated, false),
+      sql`raw_content_passes_prefilter(${skills.rawContent})`,
+    ];
+    if (minQuality > 0) conditions.push(gte(skills.qualityScore, minQuality));
+    if (securityPass) conditions.push(eq(skills.securityStatus, 'pass'));
+
+    const result = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(skills)
+      .where(and(...conditions));
+    return result[0]?.count ?? 0;
+  },
+
+  /**
+   * Count skills needing re-review
+   */
+  countReReviews: async (db: DB) => {
+    const result = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(skills)
+      .where(
+        and(
+          browseReadyFilter,
+          eq(skills.isBlocked, false),
+          eq(skills.reviewStatus, 'needs-re-review'),
+          // Pre-filters via safe SQL function (handles invalid UTF-8 gracefully)
+          eq(skills.sourceFormat, 'skill.md'),
+          eq(skills.isDeprecated, false),
+          sql`raw_content_passes_prefilter(${skills.rawContent})`,
+        )
+      );
+    return result[0]?.count ?? 0;
+  },
+
+  /**
+   * Count total review rows in skill_reviews table
+   */
+  countTotalReviews: async (db: DB) => {
+    const result = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(skillReviews);
+    return result[0]?.count ?? 0;
+  },
+
+  /**
+   * Get skills pending AI review (auto-scored, security=pass, quality>=threshold)
+   * Only returns standard SKILL.md format skills (excludes agents.md, cursorrules, etc.)
+   * Supports owner-capped batches to ensure diversity (max N skills per github_owner).
+   * Pre-filters: excludes auto-generated docs, internal paths, very short content, deprecated.
+   */
+  getPending: async (
+    db: DB,
+    options: {
+      batchSize?: number;
+      offset?: number;
+      minQuality?: number;
+      securityPass?: boolean;
+      priorityReReview?: boolean;
+      reReviewAll?: boolean;
+      ownerLimit?: number;
+    } = {}
+  ) => {
+    const {
+      batchSize = 20,
+      offset = 0,
+      minQuality = 50,
+      securityPass = true,
+      priorityReReview = false,
+      reReviewAll = false,
+      ownerLimit = 0,
+    } = options;
+
+    const conditions = [
+      browseReadyFilter,
+      eq(skills.isBlocked, false),
+      // Only standard SKILL.md format — exclude agents.md, cursorrules, windsurfrules, copilot-instructions
+      eq(skills.sourceFormat, 'skill.md'),
+      // Skip deprecated skills
+      eq(skills.isDeprecated, false),
+      // Pre-filters via safe SQL function (handles invalid UTF-8 gracefully)
+      sql`raw_content_passes_prefilter(${skills.rawContent})`,
+    ];
+
+    if (reReviewAll) {
+      // Re-review mode: include already-reviewed skills (for rubric version upgrades)
+      conditions.push(
+        sql`${skills.reviewStatus} IN ('ai-reviewed', 'needs-re-review', 'auto-scored')`
+      );
+    } else if (priorityReReview) {
+      conditions.push(eq(skills.reviewStatus, 'needs-re-review'));
+    } else {
+      conditions.push(eq(skills.reviewStatus, 'auto-scored'));
+    }
+
+    if (minQuality > 0) {
+      conditions.push(gte(skills.qualityScore, minQuality));
+    }
+
+    if (securityPass) {
+      conditions.push(eq(skills.securityStatus, 'pass'));
+    }
+
+    const selectFields = {
+      id: skills.id,
+      name: skills.name,
+      description: skills.description,
+      rawContent: skills.rawContent,
+      qualityScore: skills.qualityScore,
+      securityStatus: skills.securityStatus,
+      githubStars: skills.githubStars,
+      skillType: skills.skillType,
+      reviewStatus: skills.reviewStatus,
+      contentHash: skills.contentHash,
+      githubOwner: skills.githubOwner,
+      githubRepo: skills.githubRepo,
+      skillPath: skills.skillPath,
+      branch: skills.branch,
+    };
+
+    // Owner-capped batch: limit skills per github_owner for diversity
+    if (ownerLimit > 0) {
+      const whereClause = and(...conditions);
+      const results = await db.execute(sql`
+        WITH ranked AS (
+          SELECT id, name, description, raw_content, quality_score, security_status,
+                 github_stars, skill_type, review_status, content_hash,
+                 github_owner, github_repo, skill_path, branch,
+                 ROW_NUMBER() OVER (
+                   PARTITION BY github_owner
+                   ORDER BY quality_score DESC NULLS LAST, github_stars DESC NULLS LAST
+                 ) AS owner_rank
+          FROM skills
+          WHERE ${whereClause}
+        )
+        SELECT id, name, description, raw_content AS "rawContent",
+               quality_score AS "qualityScore", security_status AS "securityStatus",
+               github_stars AS "githubStars", skill_type AS "skillType",
+               review_status AS "reviewStatus", content_hash AS "contentHash",
+               github_owner AS "githubOwner", github_repo AS "githubRepo",
+               skill_path AS "skillPath", branch
+        FROM ranked
+        WHERE owner_rank <= ${ownerLimit}
+        ORDER BY quality_score DESC NULLS LAST, github_stars DESC NULLS LAST
+        LIMIT ${batchSize}
+        OFFSET ${offset}
+      `);
+      return [...results];
+    }
+
+    return db
+      .select(selectFields)
+      .from(skills)
+      .where(and(...conditions))
+      .orderBy(desc(skills.qualityScore), desc(skills.githubStars))
+      .limit(batchSize)
+      .offset(offset);
+  },
+
+  /**
+   * Update review_status on a skill
+   */
+  updateSkillReviewStatus: async (
+    db: DB,
+    skillId: string,
+    reviewStatus: string
+  ) => {
+    return db
+      .update(skills)
+      .set({ reviewStatus })
+      .where(eq(skills.id, skillId));
+  },
+};

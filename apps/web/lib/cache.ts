@@ -168,6 +168,7 @@ export const cacheKeys = {
   skill: (id: string) => `skill:${id.replace(/\//g, ':')}`,
   skillView: (skillId: string, ip: string) => `view:${skillId.replace(/\//g, ':')}:${ip}`,
   skillDownload: (skillId: string, ip: string) => `download:${skillId.replace(/\//g, ':')}:${ip}`,
+  reviewStats: () => 'review:stats',
 };
 
 // TTL values in seconds
@@ -184,6 +185,7 @@ export const cacheTTL = {
   pageCount: 60 * 60,       // 1 hour
   view: 60 * 60,            // 1 hour - same IP can only count as 1 view per hour
   download: 5 * 60,         // 5 minutes - same IP can only count as 1 download per 5 min
+  reviewStats: 60,          // 1 minute - admin review stats
 };
 
 /**

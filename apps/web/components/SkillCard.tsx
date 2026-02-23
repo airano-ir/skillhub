@@ -22,14 +22,14 @@ interface SkillCardProps {
     securityStatus: string | null;
     isVerified: boolean | null;
     sourceFormat?: string | null;
-    createdAt?: Date | null;
-    updatedAt?: Date | null;
+    createdAt?: Date | string | null;
+    updatedAt?: Date | string | null;
   };
   locale: string;
   /** Show time badge (for New Skills page) */
   showTimeBadge?: 'created' | 'updated' | null;
   /** Format time as "X days ago" */
-  formatTimeAgo?: (date: Date | null, locale: string) => string;
+  formatTimeAgo?: (date: Date | string | null, locale: string) => string;
 }
 
 export function SkillCard({ skill, locale, showTimeBadge, formatTimeAgo }: SkillCardProps) {

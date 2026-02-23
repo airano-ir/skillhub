@@ -114,7 +114,6 @@ async function main() {
     FROM skills
     WHERE is_blocked = false
       AND is_duplicate = false
-      AND (skill_type IS NULL OR skill_type IN ('standalone', 'collection'))
       AND security_status IS NULL
       AND raw_content IS NOT NULL
   `);
@@ -135,7 +134,7 @@ async function main() {
       FROM skills
       WHERE is_blocked = false
         AND is_duplicate = false
-        AND (skill_type IS NULL OR skill_type IN ('standalone', 'collection'))
+        AND is_duplicate = false
         AND security_status IS NULL
         AND raw_content IS NOT NULL
       LIMIT 5
@@ -163,7 +162,7 @@ async function main() {
       FROM skills
       WHERE is_blocked = false
         AND is_duplicate = false
-        AND (skill_type IS NULL OR skill_type IN ('standalone', 'collection'))
+        AND is_duplicate = false
         AND security_status IS NULL
         AND raw_content IS NOT NULL
       ORDER BY github_stars DESC NULLS LAST

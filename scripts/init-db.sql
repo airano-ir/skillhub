@@ -483,8 +483,79 @@ CREATE INDEX IF NOT EXISTS idx_skills_content_hash ON skills(content_hash);
 ALTER TABLE skills ADD COLUMN IF NOT EXISTS review_status TEXT DEFAULT 'unreviewed';
 CREATE INDEX IF NOT EXISTS idx_skills_review_status ON skills(review_status);
 
+-- Deprecated detection (Phase 7.4 - February 2026)
+ALTER TABLE skills ADD COLUMN IF NOT EXISTS is_deprecated BOOLEAN DEFAULT FALSE;
+
+-- Safe pre-filter function for raw_content (handles invalid UTF-8 gracefully)
+-- Used by review pipeline queries (getPending, countPending, countReReviews)
+CREATE OR REPLACE FUNCTION raw_content_passes_prefilter(content TEXT) RETURNS BOOLEAN AS $$
+BEGIN
+  IF octet_length(content) < 200 THEN RETURN FALSE; END IF;
+  IF position('<!-- generated' in content) > 0 THEN RETURN FALSE; END IF;
+  IF position('/Users/' in LEFT(content, 1000)) > 0 THEN RETURN FALSE; END IF;
+  IF position('C:\Users\' in LEFT(content, 1000)) > 0 THEN RETURN FALSE; END IF;
+  RETURN TRUE;
+EXCEPTION WHEN OTHERS THEN
+  RETURN FALSE;
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+-- Batch populate is_deprecated for existing rows (one-time migration)
+-- Uses PL/pgSQL with exception handling to skip rows with invalid UTF-8
+DO $$
+DECLARE
+  r RECORD;
+  rc TEXT;
+  cnt INT := 0;
+BEGIN
+  FOR r IN SELECT id, raw_content FROM skills WHERE is_deprecated = false LOOP
+    BEGIN
+      rc := LEFT(r.raw_content, 1000);
+      IF rc ~* '(DEPRECATED|ARCHIVED|NO LONGER MAINTAINED|THIS PROJECT IS ABANDONED)' THEN
+        UPDATE skills SET is_deprecated = true WHERE id = r.id;
+        cnt := cnt + 1;
+      END IF;
+    EXCEPTION WHEN OTHERS THEN
+      NULL; -- Skip rows with encoding errors
+    END;
+  END LOOP;
+  RAISE NOTICE 'Marked % skills as deprecated', cnt;
+END;
+$$;
+
 -- Repo creation date for duplicate tie-breaking (T074b)
 ALTER TABLE skills ADD COLUMN IF NOT EXISTS repo_created_at TIMESTAMP WITH TIME ZONE;
+
+-- AI review results table (Phase 7.1 - February 2026)
+CREATE TABLE IF NOT EXISTS skill_reviews (
+    id SERIAL PRIMARY KEY,
+    skill_id TEXT NOT NULL REFERENCES skills(id) ON DELETE CASCADE,
+    reviewer TEXT NOT NULL DEFAULT 'claude-code',  -- 'claude-code' | 'admin'
+
+    -- Scores (per Skills Guide criteria)
+    ai_score INTEGER,                   -- 0-100 overall
+    instruction_quality INTEGER,        -- clarity and structure
+    description_precision INTEGER,      -- description + triggers
+    usefulness INTEGER,                 -- real-world value
+    technical_soundness INTEGER,        -- correctness of commands/APIs
+
+    -- Discoveries during review
+    review_notes TEXT,
+    suggested_categories JSONB,         -- text[] stored as JSONB for Drizzle compatibility
+    blog_worthy BOOLEAN DEFAULT FALSE,
+    collection_candidate TEXT,
+    needs_improvement TEXT,
+    i18n_priority INTEGER DEFAULT 0,    -- 0=normal, 1=worth translating, 2=high priority
+
+    -- Tracking
+    content_hash_at_review TEXT,        -- skill hash at time of review
+    reviewed_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    review_version INTEGER DEFAULT 1    -- criteria version for recalibration
+);
+
+CREATE INDEX IF NOT EXISTS idx_reviews_skill ON skill_reviews(skill_id);
+CREATE INDEX IF NOT EXISTS idx_reviews_score ON skill_reviews(ai_score);
+CREATE INDEX IF NOT EXISTS idx_reviews_blog ON skill_reviews(blog_worthy) WHERE blog_worthy = true;
 
 -- Grant permissions
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO postgres;

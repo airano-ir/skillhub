@@ -43,6 +43,10 @@ drizzle/*.sql
 *.dump
 data/backups/
 
+# Curation session data (review batches/results contain raw_content)
+scripts/curation/data/*
+!scripts/curation/data/.gitkeep
+
 # Claude Code
 .claude/skills/
 .claude/settings.local.json

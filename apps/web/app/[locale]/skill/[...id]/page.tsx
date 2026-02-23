@@ -118,7 +118,7 @@ export default async function SkillPage({ params }: SkillPageProps) {
     securityStatus: dbSkill.securityStatus || 'pass',
     isVerified: dbSkill.isVerified || false,
     createdAt: dbSkill.createdAt,
-    updatedAt: dbSkill.updatedAt ? dbSkill.updatedAt.toLocaleDateString(locale === 'fa' ? 'fa-IR' : 'en-US') : 'N/A',
+    updatedAt: dbSkill.updatedAt ? new Date(dbSkill.updatedAt).toLocaleDateString(locale === 'fa' ? 'fa-IR' : 'en-US') : 'N/A',
     rating: dbSkill.rating || 0,
     ratingCount: dbSkill.ratingCount || 0,
     sourceFormat: dbSkill.sourceFormat || 'skill.md',

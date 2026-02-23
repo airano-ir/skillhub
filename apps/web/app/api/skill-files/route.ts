@@ -9,8 +9,17 @@ export const maxDuration = 60; // 60 seconds
 // Maximum recursion depth to prevent infinite loops
 const MAX_DEPTH = 5;
 
+// Maximum number of files to fetch per skill
+const MAX_FILES = 50;
+
+// Maximum total content size (2MB) to prevent huge responses
+const MAX_TOTAL_SIZE = 2 * 1024 * 1024;
+
+// Concurrency limit for parallel file content fetches
+const PARALLEL_FETCH_LIMIT = 5;
+
 // Fetch timeout in milliseconds
-const FETCH_TIMEOUT = 30000; // 30 seconds
+const FETCH_TIMEOUT = 15000; // 15 seconds per individual fetch
 
 // Create database connection
 const db = createDb();
@@ -209,42 +218,56 @@ export async function GET(request: NextRequest) {
 }
 
 /**
- * Recursively fetch all files in a skill folder from GitHub
- * @param depth - Current recursion depth (max MAX_DEPTH levels)
- * @param headers - GitHub API headers (with token rotation)
- * @param token - Current token for stats tracking
+ * Helper: run async tasks with concurrency limit
  */
-async function fetchSkillFiles(
+async function parallelLimit<T>(
+  tasks: (() => Promise<T>)[],
+  limit: number
+): Promise<T[]> {
+  const results: T[] = [];
+  let idx = 0;
+
+  async function runNext(): Promise<void> {
+    while (idx < tasks.length) {
+      const currentIdx = idx++;
+      results[currentIdx] = await tasks[currentIdx]();
+    }
+  }
+
+  const workers = Array.from({ length: Math.min(limit, tasks.length) }, () => runNext());
+  await Promise.all(workers);
+  return results;
+}
+
+/**
+ * Recursively collect file metadata (directory listings only, no content fetch).
+ * Returns flat list of file entries to fetch content for.
+ */
+async function collectFileEntries(
   owner: string,
   repo: string,
   path: string,
   ref: string,
-  depth: number = 0,
+  depth: number,
   headers: Record<string, string>,
   token: string | null
-): Promise<SkillFile[]> {
-  // Prevent infinite recursion
+): Promise<Array<{ item: GitHubFile; relativePath: string }>> {
   if (depth > MAX_DEPTH) {
     console.warn(`Max depth (${MAX_DEPTH}) reached at: ${path}`);
     return [];
   }
 
-  const files: SkillFile[] = [];
-
-  // Fetch directory contents with timeout
   const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${ref}`;
   const response = await fetch(apiUrl, {
     headers,
     signal: AbortSignal.timeout(FETCH_TIMEOUT),
   });
 
-  // Update token stats for rotation
   if (token) {
     await updateTokenStats(token, response.headers);
   }
 
   if (!response.ok) {
-    // Check for rate limiting
     if (response.status === 403) {
       const rateLimitRemaining = response.headers.get('x-ratelimit-remaining');
       if (rateLimitRemaining === '0') {
@@ -255,60 +278,92 @@ async function fetchSkillFiles(
   }
 
   const contents: GitHubFile[] = await response.json();
+  const entries: Array<{ item: GitHubFile; relativePath: string }> = [];
 
-  // Process each item
   for (const item of contents) {
+    const relativePath = item.path.replace(`${path}/`, '').replace(path, '') || item.name;
+
     if (item.type === 'file') {
-      // Determine if file is binary
-      const isBinary = !isTextFile(item.name);
-
-      if (!isBinary && item.size < 1024 * 1024) {
-        // For text files (< 1MB), fetch content
-        try {
-          const content = await fetchFileContent(owner, repo, item.path, ref, headers, token);
-          files.push({
-            name: item.name,
-            path: item.path.replace(`${path}/`, '').replace(path, '') || item.name,
-            content,
-            size: item.size,
-            isBinary: false,
-          });
-        } catch {
-          // If content fetch fails, mark as binary (will use download URL)
-          files.push({
-            name: item.name,
-            path: item.path.replace(`${path}/`, '').replace(path, '') || item.name,
-            content: '',
-            size: item.size,
-            isBinary: true,
-          });
-        }
-      } else {
-        // For binary or large files, don't store content (use download URL)
-        files.push({
-          name: item.name,
-          path: item.path.replace(`${path}/`, '').replace(path, '') || item.name,
-          content: '',
-          size: item.size,
-          isBinary: true,
-        });
-      }
+      entries.push({ item, relativePath });
     } else if (item.type === 'dir') {
-      // Recursively fetch subdirectory (with depth limit)
-      const subPath = `${path}/${item.name}`;
-      const subFiles = await fetchSkillFiles(owner, repo, subPath, ref, depth + 1, headers, token);
-
-      // Add subdirectory files with proper paths
-      for (const subFile of subFiles) {
-        files.push({
-          ...subFile,
-          path: `${item.name}/${subFile.path}`,
+      const subEntries = await collectFileEntries(
+        owner, repo, `${path}/${item.name}`, ref, depth + 1, headers, token
+      );
+      for (const sub of subEntries) {
+        entries.push({
+          item: sub.item,
+          relativePath: `${item.name}/${sub.relativePath}`,
         });
       }
     }
   }
 
-  return files;
+  return entries;
+}
+
+/**
+ * Fetch all files in a skill folder from GitHub.
+ * Phase 1: Collect directory tree (sequential, required for recursion)
+ * Phase 2: Fetch file contents in parallel (fast, with concurrency limit)
+ */
+async function fetchSkillFiles(
+  owner: string,
+  repo: string,
+  path: string,
+  ref: string,
+  depth: number = 0,
+  headers: Record<string, string>,
+  token: string | null
+): Promise<SkillFile[]> {
+  // Phase 1: Collect all file entries from directory tree
+  const entries = await collectFileEntries(owner, repo, path, ref, depth, headers, token);
+
+  // Apply MAX_FILES limit
+  if (entries.length > MAX_FILES) {
+    console.warn(`[skill-files] Skill has ${entries.length} files, limiting to ${MAX_FILES}`);
+    entries.length = MAX_FILES;
+  }
+
+  // Phase 2: Fetch file contents in parallel
+  let totalSize = 0;
+  const tasks = entries.map((entry) => async (): Promise<SkillFile> => {
+    const { item, relativePath } = entry;
+    const isBinary = !isTextFile(item.name);
+
+    if (!isBinary && item.size < 1024 * 1024 && totalSize + item.size <= MAX_TOTAL_SIZE) {
+      try {
+        const content = await fetchFileContent(owner, repo, item.path, ref, headers, token);
+        totalSize += item.size;
+        return {
+          name: item.name,
+          path: relativePath,
+          content,
+          size: item.size,
+          isBinary: false,
+        };
+      } catch {
+        // Content fetch failed — return as binary with download URL
+        return {
+          name: item.name,
+          path: relativePath,
+          content: '',
+          size: item.size,
+          isBinary: true,
+        };
+      }
+    }
+
+    // Binary, too large, or total size exceeded
+    return {
+      name: item.name,
+      path: relativePath,
+      content: '',
+      size: item.size,
+      isBinary: true,
+    };
+  });
+
+  return parallelLimit(tasks, PARALLEL_FETCH_LIMIT);
 }
 
 /**

@@ -20,10 +20,11 @@ interface NewSkillsPageProps {
 }
 
 // Format date to "X hours/days ago" with locale support
-function formatTimeAgo(date: Date | null, locale: string): string {
+function formatTimeAgo(date: Date | string | null, locale: string): string {
   if (!date) return locale === 'fa' ? 'اخیراً' : 'Recently';
+  const d = date instanceof Date ? date : new Date(date);
   const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
+  const diffMs = now.getTime() - d.getTime();
   const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
   const diffDays = Math.floor(diffHours / 24);
 

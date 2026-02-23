@@ -3,6 +3,7 @@ import {
   text,
   timestamp,
   integer,
+  serial,
   jsonb,
   boolean,
   index,
@@ -65,6 +66,7 @@ export const skills = pgTable(
     isVerified: boolean('is_verified').default(false),
     isFeatured: boolean('is_featured').default(false),
     isBlocked: boolean('is_blocked').default(false), // Blocked from re-indexing (owner requested removal)
+    isDeprecated: boolean('is_deprecated').default(false), // Auto-detected from raw_content (DEPRECATED/ARCHIVED markers)
     lastScanned: timestamp('last_scanned'),
 
     // Curation (populated by batch scripts, not crawler)
@@ -389,12 +391,52 @@ export const addRequests = pgTable(
   })
 );
 
+/**
+ * AI review results for skills (Layer 2 — verification pipeline)
+ */
+export const skillReviews = pgTable(
+  'skill_reviews',
+  {
+    id: serial('id').primaryKey(),
+    skillId: text('skill_id')
+      .references(() => skills.id, { onDelete: 'cascade' })
+      .notNull(),
+    reviewer: text('reviewer').notNull().default('claude-code'), // 'claude-code' | 'admin'
+
+    // Scores (per Skills Guide criteria)
+    aiScore: integer('ai_score'), // 0-100 overall
+    instructionQuality: integer('instruction_quality'), // clarity and structure
+    descriptionPrecision: integer('description_precision'), // description + triggers
+    usefulness: integer('usefulness'), // real-world value
+    technicalSoundness: integer('technical_soundness'), // correctness of commands/APIs
+
+    // Discoveries during review
+    reviewNotes: text('review_notes'),
+    suggestedCategories: jsonb('suggested_categories').$type<string[]>(),
+    blogWorthy: boolean('blog_worthy').default(false),
+    collectionCandidate: text('collection_candidate'),
+    needsImprovement: text('needs_improvement'),
+    i18nPriority: integer('i18n_priority').default(0), // 0=normal, 1=worth translating, 2=high priority
+
+    // Tracking
+    contentHashAtReview: text('content_hash_at_review'), // skill hash at time of review
+    reviewedAt: timestamp('reviewed_at').defaultNow(),
+    reviewVersion: integer('review_version').default(1), // criteria version for recalibration
+  },
+  (table) => ({
+    skillIdx: index('idx_reviews_skill').on(table.skillId),
+    scoreIdx: index('idx_reviews_score').on(table.aiScore),
+    blogIdx: index('idx_reviews_blog').on(table.blogWorthy),
+  })
+);
+
 // Relations
 export const skillsRelations = relations(skills, ({ many }) => ({
   categories: many(skillCategories),
   ratings: many(ratings),
   installations: many(installations),
   favorites: many(favorites),
+  reviews: many(skillReviews),
 }));
 
 export const categoriesRelations = relations(categories, ({ many, one }) => ({
@@ -467,6 +509,13 @@ export const addRequestsRelations = relations(addRequests, ({ one }) => ({
   user: one(users, {
     fields: [addRequests.userId],
     references: [users.id],
+  }),
+}));
+
+export const skillReviewsRelations = relations(skillReviews, ({ one }) => ({
+  skill: one(skills, {
+    fields: [skillReviews.skillId],
+    references: [skills.id],
   }),
 }));
 
