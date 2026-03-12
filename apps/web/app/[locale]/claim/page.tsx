@@ -42,6 +42,7 @@ export default async function ClaimPage({
     tabs: {
       remove: t('tabs.remove'),
       add: t('tabs.add'),
+      removeRepo: t('tabs.removeRepo'),
     },
     form: {
       skillId: t('form.skillId'),
@@ -78,6 +79,27 @@ export default async function ClaimPage({
       foundSkillsIn: t('addSuccess.foundSkillsIn'),
       root: t('addSuccess.root'),
       andMore: t.raw('addSuccess.andMore') as string,
+      reEnabledTitle: t('addSuccess.reEnabledTitle'),
+      reEnabledDescription: t('addSuccess.reEnabledDescription'),
+    },
+    removeRepoForm: {
+      repoUrl: t('removeRepoForm.repoUrl'),
+      repoUrlPlaceholder: t('removeRepoForm.repoUrlPlaceholder'),
+      repoUrlHelp: t('removeRepoForm.repoUrlHelp'),
+      reason: t('removeRepoForm.reason'),
+      reasonPlaceholder: t('removeRepoForm.reasonPlaceholder'),
+      submit: t('removeRepoForm.submit'),
+      submitting: t('removeRepoForm.submitting'),
+    },
+    removeRepoSuccess: {
+      title: t('removeRepoSuccess.title'),
+      description: t.raw('removeRepoSuccess.description') as string,
+      descriptionZero: t('removeRepoSuccess.descriptionZero'),
+    },
+    removeRepoError: {
+      notOwner: t('removeRepoError.notOwner'),
+      invalidRepo: t('removeRepoError.invalidRepo'),
+      parseError: t('removeRepoError.parseError'),
     },
     error: {
       notOwner: t('error.notOwner'),
@@ -90,6 +112,7 @@ export default async function ClaimPage({
       rateLimitExceeded: t('error.rateLimitExceeded'),
       networkTimeout: t('error.networkTimeout'),
       generic: t('error.generic'),
+      repoBlockedByOwner: t('error.repoBlockedByOwner'),
     },
     myRequests: {
       title: t('myRequests.title'),

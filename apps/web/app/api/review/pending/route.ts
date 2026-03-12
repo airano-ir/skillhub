@@ -49,6 +49,9 @@ export async function GET(request: NextRequest) {
       Math.max(parseInt(searchParams.get('owner_limit') ?? '0', 10) || 0, 0),
       10
     );
+    const currentReviewVersion = Math.max(
+      parseInt(searchParams.get('review_version') ?? '0', 10) || 0, 0
+    );
 
     // Run counts in parallel
     const [totalPending, reReviews] = await Promise.all([
@@ -68,6 +71,7 @@ export async function GET(request: NextRequest) {
         securityPass,
         reReviewAll: true,
         ownerLimit,
+        currentReviewVersion,
       }) as typeof batch;
       batch = [...allBatch].slice(0, batchSize);
     } else {

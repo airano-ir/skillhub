@@ -33,7 +33,28 @@ export async function indexSkill(
 
   // Fetch skill content
   console.log(`Fetching ${source.owner}/${source.repo}/${source.path} [${sourceFormat}]...`);
-  const content = await crawler.fetchSkillContent(source);
+  let content;
+  try {
+    content = await crawler.fetchSkillContent(source);
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+
+    // Detect 404 (skill removed from GitHub) — increment stale check
+    if (errorMsg.includes('not found') || errorMsg.includes('Not Found') || errorMsg.includes('404')) {
+      const skillName = source.path.split('/').pop() || 'skill';
+      const formatSuffix = sourceFormat !== 'skill.md' ? `~${sourceFormat.replace('.', '')}` : '';
+      const skillId = `${source.owner}/${source.repo}/${skillName}${formatSuffix}`;
+
+      await skillQueries.incrementStaleCheck(database, skillId).catch((err) => {
+        console.warn(`  -> Failed to increment stale check for ${skillId}:`, err);
+      });
+      console.log(`  -> ${skillId}: GitHub 404 (stale check incremented)`);
+      return null;
+    }
+
+    // For non-404 errors, rethrow
+    throw error;
+  }
 
   // Analyze the skill with format awareness
   const analysis = await analyzer.analyze(content, sourceFormat);

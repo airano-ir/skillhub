@@ -6,6 +6,7 @@ import {
   ratingQueries,
   installationQueries,
   favoriteQueries,
+  discoveredRepoQueries,
 } from './queries.js';
 import {
   createTestSkill,
@@ -22,13 +23,14 @@ import {
 
 // Mock the schema imports
 vi.mock('./schema.js', () => ({
-  skills: { id: 'id', name: 'name', description: 'description', githubStars: 'github_stars', downloadCount: 'download_count', rating: 'rating', updatedAt: 'updated_at', isFeatured: 'is_featured', isVerified: 'is_verified', securityScore: 'security_score', viewCount: 'view_count', ratingCount: 'rating_count', ratingSum: 'rating_sum' },
+  skills: { id: 'id', name: 'name', description: 'description', githubStars: 'github_stars', downloadCount: 'download_count', rating: 'rating', updatedAt: 'updated_at', isFeatured: 'is_featured', isVerified: 'is_verified', securityScore: 'security_score', viewCount: 'view_count', ratingCount: 'rating_count', ratingSum: 'rating_sum', githubOwner: 'github_owner', githubRepo: 'github_repo', isBlocked: 'is_blocked', isOwnerClaimed: 'is_owner_claimed', isDuplicate: 'is_duplicate' },
   categories: { id: 'id', name: 'name', slug: 'slug', sortOrder: 'sort_order', skillCount: 'skill_count' },
   skillCategories: { skillId: 'skill_id', categoryId: 'category_id' },
   users: { id: 'id', githubId: 'github_id', username: 'username', avatarUrl: 'avatar_url' },
   ratings: { id: 'id', skillId: 'skill_id', userId: 'user_id', rating: 'rating', createdAt: 'created_at' },
   installations: { id: 'id', skillId: 'skill_id', platform: 'platform', method: 'method' },
   favorites: { userId: 'user_id', skillId: 'skill_id', createdAt: 'created_at' },
+  discoveredRepos: { id: 'id', isBlocked: 'is_blocked', isArchived: 'is_archived', lastScanned: 'last_scanned', githubStars: 'github_stars', discoveredVia: 'discovered_via', owner: 'owner', repo: 'repo', githubForks: 'github_forks', defaultBranch: 'default_branch', hasSkillMd: 'has_skill_md', skillCount: 'skill_count', scanError: 'scan_error', updatedAt: 'updated_at' },
 }));
 
 // Helper to create a chainable mock
@@ -656,6 +658,130 @@ describe('favoriteQueries', () => {
       );
 
       expect(result).toEqual([]);
+    });
+  });
+});
+
+describe('skillQueries (repo block/unblock)', () => {
+  describe('blockByRepo', () => {
+    it('should call update with isBlocked: true for matching owner/repo', async () => {
+      const mockDb = createMockDb();
+
+      await skillQueries.blockByRepo(mockDb as any, 'rawveg', 'skillsforge-marketplace');
+
+      expect(mockDb.update).toHaveBeenCalled();
+    });
+  });
+
+  describe('unblockByRepo', () => {
+    it('should call update with isBlocked: false for matching owner/repo', async () => {
+      const mockDb = createMockDb();
+
+      await skillQueries.unblockByRepo(mockDb as any, 'rawveg', 'skillsforge-marketplace');
+
+      expect(mockDb.update).toHaveBeenCalled();
+    });
+  });
+
+  describe('setOwnerClaimed', () => {
+    it('should call update with isOwnerClaimed: true for matching owner/repo', async () => {
+      const mockDb = createMockDb();
+
+      await skillQueries.setOwnerClaimed(mockDb as any, 'rawveg', 'skillsforge-marketplace');
+
+      expect(mockDb.update).toHaveBeenCalled();
+    });
+  });
+
+  describe('countByRepo', () => {
+    it('should return count of non-blocked skills for owner/repo', async () => {
+      const mockDb = createMockDb([{ count: 16 }]);
+
+      const result = await skillQueries.countByRepo(mockDb as any, 'rawveg', 'skillsforge-marketplace');
+
+      expect(result).toBe(16);
+      expect(mockDb.select).toHaveBeenCalled();
+    });
+
+    it('should return 0 when no matching skills', async () => {
+      const mockDb = createMockDb([{ count: 0 }]);
+
+      const result = await skillQueries.countByRepo(mockDb as any, 'unknown', 'unknown-repo');
+
+      expect(result).toBe(0);
+    });
+
+    it('should return 0 when result is empty', async () => {
+      const mockDb = createMockDb([]);
+
+      const result = await skillQueries.countByRepo(mockDb as any, 'owner', 'repo');
+
+      expect(result).toBe(0);
+    });
+  });
+});
+
+describe('discoveredRepoQueries', () => {
+  describe('blockRepo', () => {
+    it('should call update with isBlocked: true for the repo id', async () => {
+      const mockDb = createMockDb();
+
+      await discoveredRepoQueries.blockRepo(mockDb as any, 'rawveg/skillsforge-marketplace');
+
+      expect(mockDb.update).toHaveBeenCalled();
+    });
+  });
+
+  describe('unblockRepo', () => {
+    it('should call update with isBlocked: false for the repo id', async () => {
+      const mockDb = createMockDb();
+
+      await discoveredRepoQueries.unblockRepo(mockDb as any, 'rawveg/skillsforge-marketplace');
+
+      expect(mockDb.update).toHaveBeenCalled();
+    });
+  });
+
+  describe('getNeedingScanning', () => {
+    it('should return repos that need scanning', async () => {
+      const repos = [
+        { id: 'owner/repo1', isBlocked: false },
+        { id: 'owner/repo2', isBlocked: false },
+      ];
+      const mockDb = createMockDb(repos);
+
+      const result = await discoveredRepoQueries.getNeedingScanning(mockDb as any);
+
+      expect(result).toEqual(repos);
+      expect(mockDb.select).toHaveBeenCalled();
+    });
+
+    it('should return empty array when no repos need scanning', async () => {
+      const mockDb = createMockDb([]);
+
+      const result = await discoveredRepoQueries.getNeedingScanning(mockDb as any);
+
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe('getById', () => {
+    it('should return repo when found', async () => {
+      const repo = { id: 'rawveg/skillsforge-marketplace', isBlocked: true };
+      const mockDb = createMockDb([repo]);
+
+      const result = await discoveredRepoQueries.getById(mockDb as any, 'rawveg/skillsforge-marketplace');
+
+      expect(result).toEqual(repo);
+      expect(mockDb.select).toHaveBeenCalled();
+    });
+
+    it('should return null when repo not found', async () => {
+      const mockDb = createMockDb([]);
+
+      const result = await discoveredRepoQueries.getById(mockDb as any, 'nonexistent/repo');
+
+      expect(result).toBeNull();
     });
   });
 });

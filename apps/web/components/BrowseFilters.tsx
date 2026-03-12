@@ -470,7 +470,7 @@ export function EmptyState({ query, hasFilters, locale = 'en', translations }: E
         <Sparkles className="w-10 h-10 text-text-muted" />
       </div>
       <h3 className="text-xl font-semibold text-text-primary mb-2">
-        {query ? translations.noResultsWithQuery.replace('{query}', query) : translations.noResults}
+        {query ? translations.noResultsWithQuery : translations.noResults}
       </h3>
       <p className="text-text-secondary mb-6 max-w-md mx-auto">
         {translations.tryDifferent}

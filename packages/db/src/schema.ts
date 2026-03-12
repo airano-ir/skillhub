@@ -67,6 +67,9 @@ export const skills = pgTable(
     isFeatured: boolean('is_featured').default(false),
     isBlocked: boolean('is_blocked').default(false), // Blocked from re-indexing (owner requested removal)
     isDeprecated: boolean('is_deprecated').default(false), // Auto-detected from raw_content (DEPRECATED/ARCHIVED markers)
+    isStale: boolean('is_stale').default(false), // Skill files no longer accessible on GitHub (confirmed after 3 consecutive 404s)
+    staleSince: timestamp('stale_since'), // When staleness was first detected
+    staleCheckCount: integer('stale_check_count').default(0), // Consecutive 404 count (threshold: 3)
     lastScanned: timestamp('last_scanned'),
 
     // Curation (populated by batch scripts, not crawler)
@@ -79,6 +82,7 @@ export const skills = pgTable(
     }>(),
     skillType: text('skill_type').$type<'standalone' | 'project-bound' | 'collection' | 'aggregator'>(),
     isDuplicate: boolean('is_duplicate').default(false),
+    isOwnerClaimed: boolean('is_owner_claimed').default(false), // Owner explicitly submitted via Add Skill — exempt from duplicate hiding
     canonicalSkillId: text('canonical_skill_id'), // points to the "original" if this is a duplicate
     repoSkillCount: integer('repo_skill_count'), // cached count of skills in same repo
     reviewStatus: text('review_status').default('unreviewed'), // unreviewed → auto-scored → ai-reviewed → verified (or needs-re-review)
@@ -124,6 +128,7 @@ export const skills = pgTable(
     skillTypeIdx: index('idx_skills_type').on(table.skillType),
     duplicateIdx: index('idx_skills_duplicate').on(table.isDuplicate),
     contentHashIdx: index('idx_skills_content_hash').on(table.contentHash),
+    staleIdx: index('idx_skills_stale').on(table.isStale),
   })
 );
 
@@ -303,6 +308,7 @@ export const discoveredRepos = pgTable(
     githubForks: integer('github_forks').default(0),
     defaultBranch: text('default_branch').default('main'),
     isArchived: boolean('is_archived').default(false),
+    isBlocked: boolean('is_blocked').default(false), // Owner requested removal — skip re-indexing
     scanError: text('scan_error'), // Last scan error if any
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),

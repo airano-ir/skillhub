@@ -545,6 +545,8 @@
     "browseAll": "Browse all skills",
     "claimCta": "Is this your repository?",
     "claimButton": "Claim ownership",
+    "ownerManageCta": "You own these skills.",
+    "ownerManageButton": "Manage / Remove Skills",
     "installCta": "Install the most popular skill from this owner:",
     "stats": {
       "skills": "{count, plural, one {# skill} other {# skills}}",
@@ -696,7 +698,8 @@
     },
     "tabs": {
       "remove": "Remove Skill",
-      "add": "Add Skill"
+      "add": "Add Skill",
+      "removeRepo": "Remove Repository"
     },
     "form": {
       "skillId": "Skill ID",
@@ -732,7 +735,9 @@
       "viewRequests": "View My Requests",
       "foundSkillsIn": "Found skills in:",
       "root": "(root)",
-      "andMore": "... and {count} more"
+      "andMore": "... and {count} more",
+      "reEnabledTitle": "Repository Re-enabled",
+      "reEnabledDescription": "Your repository has been unblocked and will appear again after the next scan."
     },
     "error": {
       "notOwner": "You are not the owner or admin of this repository. Only repository owners can request removal.",
@@ -744,7 +749,8 @@
       "invalidRepo": "The repository was not found or is not accessible. Please check the URL and ensure the repository is public.",
       "rateLimitExceeded": "GitHub API rate limit exceeded. Please try again in a few minutes.",
       "networkTimeout": "Request timed out while checking the repository. Please try again.",
-      "generic": "An error occurred. Please try again."
+      "generic": "An error occurred. Please try again.",
+      "repoBlockedByOwner": "This repository was removed by its owner and cannot be re-added."
     },
     "myRequests": {
       "title": "My Requests",
@@ -760,6 +766,25 @@
       "showLess": "Show less",
       "showAllPrefix": "Show all ",
       "showAllSuffix": " paths"
+    },
+    "removeRepoForm": {
+      "repoUrl": "GitHub Repository URL or owner/repo",
+      "repoUrlPlaceholder": "https://github.com/owner/repo",
+      "repoUrlHelp": "All skills from this repository will be removed from SkillHub and it will not be re-indexed.",
+      "reason": "Reason for removal",
+      "reasonPlaceholder": "Why are you removing this repository?",
+      "submit": "Remove All Skills",
+      "submitting": "Removing..."
+    },
+    "removeRepoSuccess": {
+      "title": "Repository Removed",
+      "description": "All {count} skills from {repo} have been removed from SkillHub.",
+      "descriptionZero": "No active skills were found for this repository. It has been blocked from re-indexing."
+    },
+    "removeRepoError": {
+      "notOwner": "You are not the owner of this repository.",
+      "invalidRepo": "Repository not found on GitHub.",
+      "parseError": "Invalid format. Use https://github.com/owner/repo or owner/repo."
     }
   },
   "attribution": {

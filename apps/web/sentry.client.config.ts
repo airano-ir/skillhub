@@ -43,6 +43,20 @@ Sentry.init({
     /Object Not Found Matching Id/,
     // ResizeObserver loop limit — browser quirk, not actionable
     "ResizeObserver",
+    // DOM manipulation by browser extensions (translate, font, etc.) conflicts with React
+    "NotFoundError: Failed to execute 'removeChild' on 'Node'",
+    "NotFoundError: Failed to execute 'insertBefore' on 'Node'",
+    // Browser extension internal errors (crypto wallets, etc.)
+    /func .* not found/,
+  ],
+
+  // Ignore errors originating from browser extensions or injected scripts
+  denyUrls: [
+    /extensions\//i,
+    /^chrome:\/\//i,
+    /^chrome-extension:\/\//i,
+    /^moz-extension:\/\//i,
+    /inpage\.js/,
   ],
 
   beforeSend(event, hint) {

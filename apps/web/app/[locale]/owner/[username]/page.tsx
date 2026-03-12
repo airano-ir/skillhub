@@ -10,6 +10,7 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 import { getPageAlternates } from '@/lib/seo';
 import { getOrSetCache, cacheKeys, cacheTTL } from '@/lib/cache';
+import { auth } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,6 +50,8 @@ export default async function OwnerPage({ params, searchParams }: OwnerPageProps
   const activeRepo = searchParamsResolved.repo || '';
 
   const db = createDb();
+  const session = await auth();
+  const isOwner = session?.user?.username?.toLowerCase() === username.toLowerCase();
 
   // Fetch stats and repo list with caching (30 min TTL), count is dynamic per filter
   const [stats, totalSkills, ownerRepos] = await Promise.all([
@@ -256,16 +259,30 @@ export default async function OwnerPage({ params, searchParams }: OwnerPageProps
             </div>
           </div>
 
-          {/* Claim CTA - subtle inline hint */}
-          <div className="flex items-center gap-2 mb-6 text-xs text-text-muted">
-            <span>{t('claimCta')}</span>
-            <Link
-              href={`/${locale}/claim`}
-              className="text-primary hover:underline font-medium whitespace-nowrap"
-            >
-              {t('claimButton')}
-            </Link>
-          </div>
+          {/* Claim CTA */}
+          {isOwner ? (
+            <div className="flex items-center gap-3 mb-6 px-4 py-3 bg-primary/5 border border-primary/20 rounded-lg">
+              <div className="flex-1 text-sm text-text-secondary">
+                {t('ownerManageCta')}
+              </div>
+              <Link
+                href={`/${locale}/claim`}
+                className="text-sm text-primary hover:underline font-medium whitespace-nowrap"
+              >
+                {t('ownerManageButton')}
+              </Link>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 mb-6 text-xs text-text-muted">
+              <span>{t('claimCta')}</span>
+              <Link
+                href={`/${locale}/claim`}
+                className="text-primary hover:underline font-medium whitespace-nowrap"
+              >
+                {t('claimButton')}
+              </Link>
+            </div>
+          )}
 
           {/* Repos + Skills */}
           {repos.map((repo) => (

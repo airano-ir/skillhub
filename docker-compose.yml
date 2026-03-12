@@ -121,8 +121,14 @@ services:
 
 volumes:
   postgres_data:
+    name: skillhub-public_postgres_data
+    external: true
   redis_data:
+    name: skillhub-public_redis_data
+    external: true
   meilisearch_data:
+    name: skillhub-public_meilisearch_data
+    external: true
 
 networks:
   default:

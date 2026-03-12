@@ -215,7 +215,7 @@ export class GitHubCrawler {
   /**
    * Check if a file exists in a repository
    */
-  private async checkFileExists(owner: string, repo: string, path: string, ref: string): Promise<boolean> {
+  async checkFileExists(owner: string, repo: string, path: string, ref: string): Promise<boolean> {
     try {
       const { octokit, token } = await this.getOctokit();
       const response = await octokit.repos.getContent({

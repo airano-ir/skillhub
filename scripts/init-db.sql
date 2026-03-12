@@ -164,6 +164,7 @@ CREATE TABLE IF NOT EXISTS discovered_repos (
     github_forks INTEGER DEFAULT 0,
     default_branch TEXT DEFAULT 'main',
     is_archived BOOLEAN DEFAULT FALSE,
+    is_blocked BOOLEAN NOT NULL DEFAULT FALSE,
     scan_error TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
@@ -471,13 +472,17 @@ ALTER TABLE skills ADD COLUMN IF NOT EXISTS quality_score INTEGER;
 ALTER TABLE skills ADD COLUMN IF NOT EXISTS quality_details JSONB;
 ALTER TABLE skills ADD COLUMN IF NOT EXISTS skill_type TEXT;  -- 'standalone', 'project-bound', 'collection', 'aggregator'
 ALTER TABLE skills ADD COLUMN IF NOT EXISTS is_duplicate BOOLEAN DEFAULT FALSE;
+ALTER TABLE skills ADD COLUMN IF NOT EXISTS is_owner_claimed BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE skills ADD COLUMN IF NOT EXISTS canonical_skill_id TEXT;  -- points to original if duplicate
 ALTER TABLE skills ADD COLUMN IF NOT EXISTS repo_skill_count INTEGER;  -- cached count of skills in repo
+ALTER TABLE discovered_repos ADD COLUMN IF NOT EXISTS is_blocked BOOLEAN NOT NULL DEFAULT FALSE;
 
 CREATE INDEX IF NOT EXISTS idx_skills_quality ON skills(quality_score DESC NULLS LAST);
 CREATE INDEX IF NOT EXISTS idx_skills_type ON skills(skill_type);
 CREATE INDEX IF NOT EXISTS idx_skills_duplicate ON skills(is_duplicate);
 CREATE INDEX IF NOT EXISTS idx_skills_content_hash ON skills(content_hash);
+CREATE INDEX IF NOT EXISTS idx_skills_owner_claimed ON skills(is_owner_claimed) WHERE is_owner_claimed = TRUE;
+CREATE INDEX IF NOT EXISTS idx_discovered_repos_blocked ON discovered_repos(is_blocked) WHERE is_blocked = TRUE;
 
 -- Review pipeline columns (Phase 4+5 - February 2026)
 ALTER TABLE skills ADD COLUMN IF NOT EXISTS review_status TEXT DEFAULT 'unreviewed';
@@ -556,6 +561,12 @@ CREATE TABLE IF NOT EXISTS skill_reviews (
 CREATE INDEX IF NOT EXISTS idx_reviews_skill ON skill_reviews(skill_id);
 CREATE INDEX IF NOT EXISTS idx_reviews_score ON skill_reviews(ai_score);
 CREATE INDEX IF NOT EXISTS idx_reviews_blog ON skill_reviews(blog_worthy) WHERE blog_worthy = true;
+
+-- Stale skill detection (March 2026)
+ALTER TABLE skills ADD COLUMN IF NOT EXISTS is_stale BOOLEAN DEFAULT FALSE;
+ALTER TABLE skills ADD COLUMN IF NOT EXISTS stale_since TIMESTAMP WITH TIME ZONE;
+ALTER TABLE skills ADD COLUMN IF NOT EXISTS stale_check_count INTEGER DEFAULT 0;
+CREATE INDEX IF NOT EXISTS idx_skills_stale ON skills(is_stale) WHERE is_stale = TRUE;
 
 -- Grant permissions
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO postgres;

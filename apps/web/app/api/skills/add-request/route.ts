@@ -1,7 +1,7 @@
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { createDb, addRequestQueries, discoveredRepoQueries, userQueries } from '@skillhub/db';
+import { createDb, addRequestQueries, discoveredRepoQueries, skillQueries, userQueries } from '@skillhub/db';
 import { sanitizeReason } from '@/lib/sanitize';
 import { sendClaimSubmittedEmail } from '@/lib/email';
 
@@ -337,6 +337,52 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if repo was previously blocked by its owner
+    let reEnabled = false;
+    const existingRepo = await discoveredRepoQueries.getById(db, `${parsed.owner}/${parsed.repo}`);
+    if (existingRepo?.isBlocked) {
+      // Verify whether the current requester is the repo owner
+      let requesterIsOwner = false;
+      try {
+        const ownerCheckRes = await fetch(
+          `https://api.github.com/repos/${parsed.owner}/${parsed.repo}`,
+          {
+            headers: {
+              Accept: 'application/vnd.github.v3+json',
+              'User-Agent': 'SkillHub',
+              ...(process.env.GITHUB_TOKEN && {
+                Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+              }),
+            },
+            signal: AbortSignal.timeout(10000),
+          }
+        );
+        if (ownerCheckRes.ok) {
+          const repoData = await ownerCheckRes.json() as { owner?: { login?: string } };
+          requesterIsOwner =
+            repoData.owner?.login?.toLowerCase() === session.user.username.toLowerCase();
+        }
+      } catch {
+        // If we can't reach GitHub, treat as non-owner (safe default)
+      }
+
+      if (!requesterIsOwner) {
+        // Case B: repo blocked by its owner, non-owner trying to re-add
+        return NextResponse.json(
+          {
+            error: 'This repository was removed by its owner and cannot be re-added.',
+            code: 'REPO_BLOCKED_BY_OWNER',
+          },
+          { status: 403 }
+        );
+      }
+
+      // Case A: owner is re-enabling their previously blocked repo
+      await skillQueries.unblockByRepo(db, parsed.owner, parsed.repo);
+      await discoveredRepoQueries.unblockRepo(db, `${parsed.owner}/${parsed.repo}`);
+      reEnabled = true;
+    }
+
     // Check if user already has a pending request for this repository + path combination
     const hasPending = await addRequestQueries.hasPendingRequest(
       db,
@@ -438,6 +484,7 @@ export async function POST(request: NextRequest) {
       skillCount: validation.skillPaths.length,
       skillPaths: validation.skillPaths,
       message,
+      ...(reEnabled && { reEnabled: true }),
     });
   } catch (error) {
     console.error('Error creating add request:', error);

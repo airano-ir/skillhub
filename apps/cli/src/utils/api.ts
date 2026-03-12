@@ -231,6 +231,8 @@ export interface SkillFilesResponse {
   files: SkillFile[];
   fromCache: boolean;
   cachedAt?: string;
+  isStale?: boolean;
+  staleWarning?: string;
 }
 
 /**

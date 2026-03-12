@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Browse-ready filter: exclude duplicates (matches browseReadyFilter in queries.ts)
-    const browseReady = sql`${skills.isDuplicate} = false`;
+    const browseReady = sql`${skills.isDuplicate} = false AND ${skills.isStale} = false`;
 
     // Browse-ready skill stats (skills count + contributors)
     const statsResult = await db

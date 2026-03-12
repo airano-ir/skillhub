@@ -36,7 +36,7 @@ type DB = PostgresJsDatabase<typeof schema>;
  * Skills with skill_type=NULL (newly crawled, not yet curated) are included
  * so they don't disappear between curate.mjs runs.
  */
-const browseReadyFilter = sql`(${skills.isDuplicate} = false)`;
+const browseReadyFilter = sql`(${skills.isDuplicate} = false OR ${skills.isOwnerClaimed} = true) AND ${skills.isStale} = false`;
 
 /** Minimum repo age gap (in days) to trust repo_created_at over stars for duplicate detection */
 const REPO_AGE_THRESHOLD_DAYS = 75;
@@ -688,6 +688,10 @@ export const skillQueries = {
             : (skill.securityStatus && skill.qualityScore != null)
               ? { reviewStatus: sql`CASE WHEN ${skills.reviewStatus} IS NULL OR ${skills.reviewStatus} = 'unreviewed' THEN 'auto-scored' ELSE ${skills.reviewStatus} END` }
               : {}),
+          // Clear stale state on successful re-index (skill is accessible again)
+          isStale: false,
+          staleSince: null,
+          staleCheckCount: 0,
         },
       })
       .returning();
@@ -760,6 +764,44 @@ export const skillQueries = {
   },
 
   /**
+   * Mark all skills from a repo as owner-claimed (exempt from duplicate hiding)
+   */
+  setOwnerClaimed: async (db: DB, owner: string, repo: string) => {
+    await db.update(skills)
+      .set({ isOwnerClaimed: true })
+      .where(and(eq(skills.githubOwner, owner), eq(skills.githubRepo, repo)));
+  },
+
+  /**
+   * Block all skills from a repo (owner requested repo-level removal)
+   */
+  blockByRepo: async (db: DB, owner: string, repo: string) => {
+    await db.update(skills)
+      .set({ isBlocked: true })
+      .where(and(eq(skills.githubOwner, owner), eq(skills.githubRepo, repo)));
+  },
+
+  /**
+   * Unblock all skills from a repo (owner re-enabled their repository)
+   */
+  unblockByRepo: async (db: DB, owner: string, repo: string) => {
+    await db.update(skills)
+      .set({ isBlocked: false })
+      .where(and(eq(skills.githubOwner, owner), eq(skills.githubRepo, repo)));
+  },
+
+  /**
+   * Count non-blocked skills in a repo
+   */
+  countByRepo: async (db: DB, owner: string, repo: string): Promise<number> => {
+    const result = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(skills)
+      .where(and(eq(skills.githubOwner, owner), eq(skills.githubRepo, repo), eq(skills.isBlocked, false)));
+    return result[0]?.count ?? 0;
+  },
+
+  /**
    * Check if a skill is blocked
    */
   isBlocked: async (db: DB, id: string): Promise<boolean> => {
@@ -769,6 +811,92 @@ export const skillQueries = {
       .where(eq(skills.id, id))
       .limit(1);
     return result[0]?.isBlocked ?? false;
+  },
+
+  /**
+   * Increment stale check count. After 3 consecutive 404s, mark skill as stale.
+   * Sets stale_since on first detection. Idempotent if skill doesn't exist.
+   */
+  incrementStaleCheck: async (db: DB, id: string) => {
+    const STALE_THRESHOLD = 3;
+
+    const existing = await db
+      .select({
+        staleCheckCount: skills.staleCheckCount,
+        staleSince: skills.staleSince,
+      })
+      .from(skills)
+      .where(eq(skills.id, id))
+      .limit(1);
+
+    if (!existing[0]) return;
+
+    const newCount = (existing[0].staleCheckCount ?? 0) + 1;
+    const isNowStale = newCount >= STALE_THRESHOLD;
+
+    await db.update(skills).set({
+      staleCheckCount: newCount,
+      staleSince: existing[0].staleSince ?? new Date(),
+      isStale: isNowStale,
+    }).where(eq(skills.id, id));
+  },
+
+  /**
+   * Clear stale state when a skill is successfully re-fetched from GitHub
+   */
+  clearStaleState: async (db: DB, id: string) => {
+    await db.update(skills).set({
+      isStale: false,
+      staleSince: null,
+      staleCheckCount: 0,
+    }).where(eq(skills.id, id));
+  },
+
+  /**
+   * Get stale skills (for admin/reporting)
+   */
+  getStaleSkills: async (db: DB, limit = 100, offset = 0) => {
+    return db
+      .select()
+      .from(skills)
+      .where(eq(skills.isStale, true))
+      .orderBy(desc(skills.staleSince))
+      .limit(limit)
+      .offset(offset);
+  },
+
+  /**
+   * Count stale skills
+   */
+  countStale: async (db: DB): Promise<number> => {
+    const result = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(skills)
+      .where(eq(skills.isStale, true));
+    return result[0]?.count ?? 0;
+  },
+
+  /**
+   * Get skills to check for staleness (ordered by oldest scanned first)
+   */
+  getSkillsToStaleCheck: async (db: DB, limit = 500) => {
+    return db
+      .select({
+        id: skills.id,
+        githubOwner: skills.githubOwner,
+        githubRepo: skills.githubRepo,
+        skillPath: skills.skillPath,
+        branch: skills.branch,
+        sourceFormat: skills.sourceFormat,
+        staleCheckCount: skills.staleCheckCount,
+      })
+      .from(skills)
+      .where(and(
+        eq(skills.isBlocked, false),
+        eq(skills.isStale, false),
+      ))
+      .orderBy(asc(skills.lastScanned))
+      .limit(limit);
   },
 
   /**
@@ -1266,6 +1394,7 @@ export async function runPostCrawlCuration(db: DB): Promise<{ classified: number
     UPDATE skills s SET is_duplicate = true
     WHERE s.is_blocked = false
       AND s.is_duplicate = false
+      AND s.is_owner_claimed = false
       AND s.content_hash IS NOT NULL
       AND EXISTS (
         SELECT 1 FROM skills s2
@@ -1623,6 +1752,7 @@ export const discoveredRepoQueries = {
       conditions.push(sql`${discoveredRepos.lastScanned} IS NULL`);
     }
     conditions.push(eq(discoveredRepos.isArchived, false));
+    conditions.push(eq(discoveredRepos.isBlocked, false));
 
     return db
       .select()
@@ -1630,6 +1760,20 @@ export const discoveredRepoQueries = {
       .where(and(...conditions))
       .orderBy(desc(discoveredRepos.githubStars))
       .limit(limit);
+  },
+
+  /**
+   * Block a repo from re-indexing (owner requested removal of all skills)
+   */
+  blockRepo: async (db: DB, id: string) => {
+    await db.update(discoveredRepos).set({ isBlocked: true }).where(eq(discoveredRepos.id, id));
+  },
+
+  /**
+   * Unblock a repo (owner re-enabled it after previously removing it)
+   */
+  unblockRepo: async (db: DB, id: string) => {
+    await db.update(discoveredRepos).set({ isBlocked: false }).where(eq(discoveredRepos.id, id));
   },
 
   /**
@@ -2511,6 +2655,7 @@ export const skillReviewQueries = {
       priorityReReview?: boolean;
       reReviewAll?: boolean;
       ownerLimit?: number;
+      currentReviewVersion?: number;
     } = {}
   ) => {
     const {
@@ -2521,6 +2666,7 @@ export const skillReviewQueries = {
       priorityReReview = false,
       reReviewAll = false,
       ownerLimit = 0,
+      currentReviewVersion = 0,
     } = options;
 
     const conditions = [
@@ -2539,6 +2685,16 @@ export const skillReviewQueries = {
       conditions.push(
         sql`${skills.reviewStatus} IN ('ai-reviewed', 'needs-re-review', 'auto-scored')`
       );
+      // Skip skills already reviewed at the current version
+      if (currentReviewVersion > 0) {
+        conditions.push(
+          sql`NOT EXISTS (
+            SELECT 1 FROM skill_reviews sr
+            WHERE sr.skill_id = ${skills.id}
+            AND sr.review_version >= ${currentReviewVersion}
+          )`
+        );
+      }
     } else if (priorityReReview) {
       conditions.push(eq(skills.reviewStatus, 'needs-re-review'));
     } else {
@@ -2570,6 +2726,12 @@ export const skillReviewQueries = {
       branch: skills.branch,
     };
 
+    // Re-review-all: prioritize already-reviewed skills first, then auto-scored
+    // Use sql.raw() for the ORDER BY to avoid parameterization issues in db.execute()
+    const orderBySql = reReviewAll
+      ? sql`CASE WHEN review_status IN ('ai-reviewed', 'needs-re-review') THEN 0 ELSE 1 END, quality_score DESC NULLS LAST, github_stars DESC NULLS LAST`
+      : sql`quality_score DESC NULLS LAST, github_stars DESC NULLS LAST`;
+
     // Owner-capped batch: limit skills per github_owner for diversity
     if (ownerLimit > 0) {
       const whereClause = and(...conditions);
@@ -2580,7 +2742,7 @@ export const skillReviewQueries = {
                  github_owner, github_repo, skill_path, branch,
                  ROW_NUMBER() OVER (
                    PARTITION BY github_owner
-                   ORDER BY quality_score DESC NULLS LAST, github_stars DESC NULLS LAST
+                   ORDER BY ${orderBySql}
                  ) AS owner_rank
           FROM skills
           WHERE ${whereClause}
@@ -2593,18 +2755,23 @@ export const skillReviewQueries = {
                skill_path AS "skillPath", branch
         FROM ranked
         WHERE owner_rank <= ${ownerLimit}
-        ORDER BY quality_score DESC NULLS LAST, github_stars DESC NULLS LAST
+        ORDER BY ${orderBySql}
         LIMIT ${batchSize}
         OFFSET ${offset}
       `);
       return [...results];
     }
 
+    // Build order: re-review priority first (if applicable), then quality
+    const orderClauses = reReviewAll
+      ? [sql`CASE WHEN ${skills.reviewStatus} IN ('ai-reviewed', 'needs-re-review') THEN 0 ELSE 1 END`, desc(skills.qualityScore), desc(skills.githubStars)]
+      : [desc(skills.qualityScore), desc(skills.githubStars)];
+
     return db
       .select(selectFields)
       .from(skills)
       .where(and(...conditions))
-      .orderBy(desc(skills.qualityScore), desc(skills.githubStars))
+      .orderBy(...orderClauses)
       .limit(batchSize)
       .offset(offset);
   },

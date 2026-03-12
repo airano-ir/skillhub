@@ -83,6 +83,9 @@ export const config = {
     '/(en|fa)/:path*',
     // Match API routes (for CSRF protection)
     '/api/:path*',
+    // Match skill paths explicitly (repo names like "next.js" contain dots
+    // which would be excluded by the catch-all pattern below)
+    '/skill/:path*',
     // Match other paths (exclude static files and Next.js internals)
     '/((?!_next|_vercel|.*\\..*).*)',
   ],

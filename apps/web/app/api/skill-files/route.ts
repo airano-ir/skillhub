@@ -39,6 +39,7 @@ interface SkillFile {
   content: string;
   size: number;
   isBinary: boolean;
+  fetchFailed?: boolean;
 }
 
 interface CachedFiles {
@@ -136,7 +137,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch skill folder contents from GitHub
-    const files = await fetchSkillFiles(
+    const { files, fetchFailureCount } = await fetchSkillFiles(
       githubOwner,
       githubRepo,
       skillPath,
@@ -146,19 +147,22 @@ export async function GET(request: NextRequest) {
       token
     );
 
-    // === SAVE TO CACHE ===
-    // Prepare cached files structure
-    const filesToCache: CachedFiles = {
-      fetchedAt: new Date().toISOString(),
-      commitSha: commitSha || 'unknown',
-      totalSize: files.reduce((sum, f) => sum + f.size, 0),
-      items: files,
-    };
+    // === SAVE TO CACHE (only if all files fetched successfully) ===
+    if (fetchFailureCount > 0) {
+      console.warn(`[skill-files] Skipping cache for ${skillId}: ${fetchFailureCount} file(s) failed to fetch`);
+    } else {
+      const filesToCache: CachedFiles = {
+        fetchedAt: new Date().toISOString(),
+        commitSha: commitSha || 'unknown',
+        totalSize: files.reduce((sum, f) => sum + f.size, 0),
+        items: files.map(({ fetchFailed: _, ...rest }) => rest),
+      };
 
-    // Save to database (async, don't block response)
-    skillQueries.updateCachedFiles(db, skillId, filesToCache).catch((err) => {
-      console.error(`[skill-files] Failed to cache files for ${skillId}:`, err);
-    });
+      // Save to database (async, don't block response)
+      skillQueries.updateCachedFiles(db, skillId, filesToCache).catch((err) => {
+        console.error(`[skill-files] Failed to cache files for ${skillId}:`, err);
+      });
+    }
 
     // Note: Download count is NOT incremented here.
     // It should only be incremented in /api/skills/install after successful download.
@@ -180,6 +184,7 @@ export async function GET(request: NextRequest) {
         downloadUrl: item.isBinary ? `https://raw.githubusercontent.com/${githubOwner}/${githubRepo}/${branch || 'main'}/${skillPath}/${item.path}` : undefined,
       })),
       fromCache: false,
+      ...(fetchFailureCount > 0 ? { fetchFailures: fetchFailureCount } : {}),
     }, {
       headers: createRateLimitHeaders(rateLimitResult),
     });
@@ -204,6 +209,44 @@ export async function GET(request: NextRequest) {
     }
 
     if (errorMessage.includes('404')) {
+      // Increment stale check (non-blocking) — after 3 consecutive 404s, skill is marked stale
+      const skillId404 = request.nextUrl.searchParams.get('id');
+      if (skillId404) {
+        skillQueries.incrementStaleCheck(db, skillId404).catch((err) => {
+          console.error(`[skill-files] Failed to increment stale check for ${skillId404}:`, err);
+        });
+      }
+
+      // If we have cached files in DB, serve them with stale warning instead of 404
+      if (skillId404) {
+        const skill404 = await skillQueries.getById(db, skillId404);
+        if (skill404?.cachedFiles) {
+          const cached = skill404.cachedFiles as CachedFiles;
+          return NextResponse.json({
+            skillId: skillId404,
+            githubOwner: skill404.githubOwner,
+            githubRepo: skill404.githubRepo,
+            skillPath: skill404.skillPath,
+            branch: skill404.branch || 'main',
+            sourceFormat: skill404.sourceFormat || 'skill.md',
+            files: cached.items.map(item => ({
+              name: item.name,
+              path: item.path,
+              type: 'file' as const,
+              size: item.size,
+              content: item.isBinary ? undefined : item.content,
+              downloadUrl: item.isBinary ? `https://raw.githubusercontent.com/${skill404.githubOwner}/${skill404.githubRepo}/${skill404.branch || 'main'}/${skill404.skillPath}/${item.path}` : undefined,
+            })),
+            fromCache: true,
+            cachedAt: cached.fetchedAt,
+            isStale: true,
+            staleWarning: 'This skill may have been removed from GitHub. Files served from cache.',
+          }, {
+            headers: createRateLimitHeaders(rateLimitResult),
+          });
+        }
+      }
+
       return NextResponse.json(
         { error: 'Skill files not found on GitHub', code: 'GITHUB_NOT_FOUND' },
         { status: 404 }
@@ -314,7 +357,7 @@ async function fetchSkillFiles(
   depth: number = 0,
   headers: Record<string, string>,
   token: string | null
-): Promise<SkillFile[]> {
+): Promise<{ files: SkillFile[]; fetchFailureCount: number }> {
   // Phase 1: Collect all file entries from directory tree
   const entries = await collectFileEntries(owner, repo, path, ref, depth, headers, token);
 
@@ -326,6 +369,7 @@ async function fetchSkillFiles(
 
   // Phase 2: Fetch file contents in parallel
   let totalSize = 0;
+  let fetchFailureCount = 0;
   const tasks = entries.map((entry) => async (): Promise<SkillFile> => {
     const { item, relativePath } = entry;
     const isBinary = !isTextFile(item.name);
@@ -340,15 +384,18 @@ async function fetchSkillFiles(
           content,
           size: item.size,
           isBinary: false,
+          fetchFailed: false,
         };
       } catch {
-        // Content fetch failed — return as binary with download URL
+        // Content fetch failed — mark as failed so we skip caching
+        fetchFailureCount++;
         return {
           name: item.name,
           path: relativePath,
           content: '',
           size: item.size,
           isBinary: true,
+          fetchFailed: true,
         };
       }
     }
@@ -360,10 +407,12 @@ async function fetchSkillFiles(
       content: '',
       size: item.size,
       isBinary: true,
+      fetchFailed: false,
     };
   });
 
-  return parallelLimit(tasks, PARALLEL_FETCH_LIMIT);
+  const files = await parallelLimit(tasks, PARALLEL_FETCH_LIMIT);
+  return { files, fetchFailureCount };
 }
 
 /**

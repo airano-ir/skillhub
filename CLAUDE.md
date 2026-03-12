@@ -90,10 +90,21 @@ Sanitized: `anthropics/skills/pdf` → `anthropics__skills__pdf`
 ## Indexer
 
 ```bash
-docker compose exec indexer node dist/crawl.js full         # Full crawl
-docker compose exec indexer node dist/crawl.js incremental  # Last 24h
-docker compose exec indexer node dist/crawl.js sync-meili   # Sync to Meilisearch
-docker compose exec indexer node dist/crawl.js deep-scan    # Scan discovered repos
+docker compose exec indexer node dist/crawl.js full                        # Full crawl
+docker compose exec indexer node dist/crawl.js incremental                 # Last 24h
+docker compose exec indexer node dist/crawl.js sync-meili                  # Sync to Meilisearch
+docker compose exec indexer node dist/crawl.js deep-scan                   # Scan discovered repos
+docker compose exec indexer node dist/crawl.js add-repo <owner/repo>       # Manually add a repo to DB
+docker compose exec indexer node dist/crawl.js process-add-requests        # Process user-submitted add requests
+```
+
+### Database Migration (container)
+```bash
+# Add new columns (run when schema changes are deployed)
+docker compose exec db psql -U skillhub -d skillhub -c "ALTER TABLE skills ADD COLUMN IF NOT EXISTS is_owner_claimed boolean NOT NULL DEFAULT false;"
+docker compose exec db psql -U skillhub -d skillhub -c "ALTER TABLE discovered_repos ADD COLUMN IF NOT EXISTS is_blocked boolean NOT NULL DEFAULT false;"
+docker compose exec db psql -U skillhub -d skillhub -c "CREATE INDEX IF NOT EXISTS idx_skills_owner_claimed ON skills(is_owner_claimed) WHERE is_owner_claimed = true;"
+docker compose exec db psql -U skillhub -d skillhub -c "CREATE INDEX IF NOT EXISTS idx_discovered_repos_blocked ON discovered_repos(is_blocked) WHERE is_blocked = true;"
 ```
 
 ## Security

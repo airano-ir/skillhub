@@ -7,7 +7,7 @@
 import { INSTRUCTION_FILE_PATTERNS, type SourceFormat } from 'skillhub-core';
 import { scheduleFullCrawl, scheduleIncrementalCrawl, getQueueStats, getQueue } from './queue.js';
 import { syncAllSkillsToMeilisearch, checkMeilisearchHealth } from './meilisearch-sync.js';
-import { createDb, skillQueries, categoryQueries, discoveredRepoQueries, awesomeListQueries, addRequestQueries, userQueries, sql } from '@skillhub/db';
+import { createDb, skillQueries, categoryQueries, discoveredRepoQueries, awesomeListQueries, addRequestQueries, userQueries, skills, sql } from '@skillhub/db';
 import { createStrategyOrchestrator, createDeepScanCrawler, createAwesomeListCrawler, createPopularReposCrawler, createCommitsSearchCrawler } from './strategies/index.js';
 import { createCrawler } from './crawler.js';
 import { indexSkill } from './skill-indexer.js';
@@ -870,6 +870,9 @@ async function main() {
               status: 'indexed',
               indexedSkillId: allSkillIds.join(','),
             });
+            // Mark all skills from this repo as owner-claimed so they're
+            // exempt from duplicate hiding on the owner page and browse pages
+            await skillQueries.setOwnerClaimed(addDb, owner, repo);
             const newCount = indexedSkillIds.length;
             const existingCount = existingSkillIds.length;
             if (newCount > 0 && existingCount > 0) {
@@ -926,6 +929,170 @@ async function main() {
       break;
     }
 
+    case 'add-repo': {
+      const input = process.argv[3];
+      if (!input) {
+        console.error('Usage: node dist/crawl.js add-repo <owner/repo or https://github.com/owner/repo>');
+        process.exit(1);
+      }
+
+      let arOwner: string;
+      let arRepo: string;
+
+      try {
+        if (input.startsWith('https://') || input.startsWith('http://')) {
+          const arUrl = new URL(input);
+          const arParts = arUrl.pathname.split('/').filter(Boolean);
+          arOwner = arParts[0];
+          arRepo = arParts[1];
+        } else {
+          const arParts = input.split('/').filter(Boolean);
+          arOwner = arParts[0];
+          arRepo = arParts[1];
+        }
+      } catch {
+        console.error('Could not parse owner/repo from input:', input);
+        process.exit(1);
+      }
+
+      if (!arOwner! || !arRepo!) {
+        console.error('Could not parse owner/repo from input:', input);
+        process.exit(1);
+      }
+
+      console.log(`Validating ${arOwner}/${arRepo} on GitHub...`);
+      const arGhRes = await fetch(`https://api.github.com/repos/${arOwner}/${arRepo}`, {
+        headers: {
+          Authorization: `token ${process.env.GITHUB_TOKEN}`,
+          'User-Agent': 'SkillHub',
+          Accept: 'application/vnd.github.v3+json',
+        },
+        signal: AbortSignal.timeout(10000),
+      });
+
+      if (!arGhRes.ok) {
+        console.error(`Repo ${arOwner}/${arRepo} not found on GitHub (HTTP ${arGhRes.status})`);
+        process.exit(1);
+      }
+
+      const arGhData = await arGhRes.json() as {
+        stargazers_count: number;
+        forks_count: number;
+        default_branch: string;
+        archived: boolean;
+      };
+
+      const arDb = createDb(process.env.DATABASE_URL);
+      await discoveredRepoQueries.upsert(arDb, {
+        id: `${arOwner}/${arRepo}`,
+        owner: arOwner,
+        repo: arRepo,
+        discoveredVia: 'manual',
+        sourceUrl: `https://github.com/${arOwner}/${arRepo}`,
+        githubStars: arGhData.stargazers_count ?? 0,
+        githubForks: arGhData.forks_count ?? 0,
+        defaultBranch: arGhData.default_branch ?? 'main',
+        isArchived: arGhData.archived ?? false,
+      });
+
+      console.log(`✅ Added ${arOwner}/${arRepo} to discovered_repos.`);
+      console.log(`   Run 'deep-scan' to index skills from this repository.`);
+      break;
+    }
+
+
+    case 'stale-check': {
+      console.log('Checking for stale skills (removed from GitHub)...\n');
+      const staleDb = createDb(process.env.DATABASE_URL);
+      const staleCrawler = createCrawler();
+
+      // Parse --limit=N option
+      const staleLimitArg = process.argv.find(a => a.startsWith('--limit='));
+      const staleLimit = staleLimitArg ? parseInt(staleLimitArg.split('=')[1]) : 500;
+
+      // Check GitHub rate limit
+      try {
+        const rateLimitInfo = await staleCrawler.getRateLimitStatus();
+        console.log(`GitHub API: ${rateLimitInfo.remaining}/${rateLimitInfo.limit} requests remaining`);
+        if (rateLimitInfo.remaining < 50) {
+          console.log('Not enough API quota for stale checking. Try again later.');
+          break;
+        }
+        console.log('');
+      } catch {
+        console.log('Could not check GitHub rate limit. Proceeding anyway...\n');
+      }
+
+      // Get skills to check (oldest scanned first)
+      const skillsToCheck = await skillQueries.getSkillsToStaleCheck(staleDb, staleLimit);
+
+      console.log(`Checking ${skillsToCheck.length} skills...\n`);
+
+      let staleChecked = 0;
+      let stillAlive = 0;
+      let newlyStale = 0;
+      let staleErrors = 0;
+
+      for (const skill of skillsToCheck) {
+        // Rate limit check every 50 skills
+        if (staleChecked > 0 && staleChecked % 50 === 0) {
+          try {
+            const midCheck = await staleCrawler.getRateLimitStatus();
+            if (midCheck.remaining < 20) {
+              console.log(`\n  API quota low (${midCheck.remaining} remaining). Stopping.`);
+              break;
+            }
+          } catch {
+            // Continue if rate limit check fails
+          }
+        }
+
+        try {
+          const sourceFormat = skill.sourceFormat || 'skill.md';
+          const pattern = INSTRUCTION_FILE_PATTERNS.find(p => p.format === sourceFormat);
+          const filename = pattern?.filename || 'SKILL.md';
+          const filePath = skill.skillPath === '.' ? filename : `${skill.skillPath}/${filename}`;
+
+          const exists = await staleCrawler.checkFileExists(
+            skill.githubOwner,
+            skill.githubRepo,
+            filePath,
+            skill.branch || 'main'
+          );
+
+          if (exists) {
+            stillAlive++;
+            // Clear any partial stale state
+            if ((skill.staleCheckCount ?? 0) > 0) {
+              await skillQueries.clearStaleState(staleDb, skill.id);
+            }
+          } else {
+            await skillQueries.incrementStaleCheck(staleDb, skill.id);
+            newlyStale++;
+            console.log(`  STALE: ${skill.id}`);
+          }
+        } catch {
+          staleErrors++;
+        }
+        staleChecked++;
+
+        // Progress every 100
+        if (staleChecked % 100 === 0) {
+          console.log(`  Progress: ${staleChecked}/${skillsToCheck.length} checked`);
+        }
+      }
+
+      console.log(`\nStale check complete:`);
+      console.log(`  Checked: ${staleChecked}`);
+      console.log(`  Still alive: ${stillAlive}`);
+      console.log(`  Stale detected: ${newlyStale}`);
+      console.log(`  Errors: ${staleErrors}`);
+
+      // Show total stale count
+      const totalStale = await skillQueries.countStale(staleDb);
+      console.log(`  Total stale skills in DB: ${totalStale}`);
+      break;
+    }
 
     default:
       console.log('Usage: pnpm crawl <command>\n');
@@ -944,6 +1111,7 @@ async function main() {
       console.log('  sync-meili             - Sync all skills from database to Meilisearch');
       console.log('  recategorize           - Re-categorize all skills with 23 categories (alias: link-categories)');
       console.log('  process-add-requests   - Process pending add requests (auto-index skills)');
+      console.log('  stale-check            - Check for stale skills removed from GitHub (--limit=N)');
       process.exit(1);
   }
 

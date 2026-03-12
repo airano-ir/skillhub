@@ -545,6 +545,8 @@
     "browseAll": "مرور همه مهارت‌ها",
     "claimCta": "آیا این مخزن شماست؟",
     "claimButton": "ثبت مالکیت",
+    "ownerManageCta": "این مهارت‌ها متعلق به شما هستند.",
+    "ownerManageButton": "مدیریت / حذف مهارت‌ها",
     "installCta": "نصب محبوب‌ترین مهارت از این مالک:",
     "stats": {
       "skills": "{count, plural, one {# مهارت} other {# مهارت}}",
@@ -696,7 +698,8 @@
     },
     "tabs": {
       "remove": "حذف مهارت",
-      "add": "افزودن مهارت"
+      "add": "افزودن مهارت",
+      "removeRepo": "حذف مخزن"
     },
     "form": {
       "skillId": "شناسه مهارت",
@@ -732,7 +735,9 @@
       "viewRequests": "مشاهده درخواست‌ها",
       "foundSkillsIn": "مهارت‌ها در این مسیرها یافت شدند:",
       "root": "(root)",
-      "andMore": "... و {count} مورد دیگر"
+      "andMore": "... و {count} مورد دیگر",
+      "reEnabledTitle": "مخزن فعال‌سازی مجدد شد",
+      "reEnabledDescription": "مخزن شما رفع انسداد شد و پس از اسکن بعدی دوباره نمایش داده خواهد شد."
     },
     "error": {
       "notOwner": "شما مالک یا ادمین این مخزن نیستید. فقط مالکان مخزن می‌توانند درخواست حذف دهند.",
@@ -744,7 +749,8 @@
       "invalidRepo": "مخزن یافت نشد یا قابل دسترسی نیست. لطفاً URL را بررسی کنید و اطمینان حاصل کنید که مخزن عمومی است.",
       "rateLimitExceeded": "محدودیت API GitHub تمام شده است. لطفاً چند دقیقه بعد دوباره تلاش کنید.",
       "networkTimeout": "هنگام بررسی مخزن زمان اتصال تمام شد. لطفاً دوباره تلاش کنید.",
-      "generic": "خطایی رخ داد. لطفاً دوباره تلاش کنید."
+      "generic": "خطایی رخ داد. لطفاً دوباره تلاش کنید.",
+      "repoBlockedByOwner": "این مخزن توسط مالکش حذف شده و قابل افزودن مجدد نیست."
     },
     "myRequests": {
       "title": "درخواست‌های من",
@@ -760,6 +766,25 @@
       "showLess": "نمایش کمتر",
       "showAllPrefix": "نمایش همه ",
       "showAllSuffix": " مسیر"
+    },
+    "removeRepoForm": {
+      "repoUrl": "آدرس مخزن گیت‌هاب یا owner/repo",
+      "repoUrlPlaceholder": "https://github.com/owner/repo",
+      "repoUrlHelp": "تمام مهارت‌های این مخزن از SkillHub حذف شده و دیگر ایندکس نخواهد شد.",
+      "reason": "دلیل حذف",
+      "reasonPlaceholder": "چرا این مخزن را حذف می‌کنید؟",
+      "submit": "حذف تمام مهارت‌ها",
+      "submitting": "در حال حذف..."
+    },
+    "removeRepoSuccess": {
+      "title": "مخزن حذف شد",
+      "description": "تمام {count} مهارت از {repo} از SkillHub حذف شدند.",
+      "descriptionZero": "هیچ مهارت فعالی برای این مخزن یافت نشد. مخزن از ایندکس‌سازی مجدد مسدود شده است."
+    },
+    "removeRepoError": {
+      "notOwner": "شما مالک این مخزن نیستید.",
+      "invalidRepo": "مخزن در گیت‌هاب یافت نشد.",
+      "parseError": "فرمت نادرست. از https://github.com/owner/repo یا owner/repo استفاده کنید."
     }
   },
   "attribution": {

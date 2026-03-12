@@ -98,6 +98,14 @@ export async function install(skillId: string, options: InstallOptions): Promise
         const cachedFiles = await getSkillFiles(skillInfo.id);
 
         if (cachedFiles && cachedFiles.files.length > 0) {
+          // Warn if skill is stale (served from cache because GitHub returned 404)
+          if (cachedFiles.isStale) {
+            spinner.warn(chalk.yellow(
+              'This skill may have been removed from its GitHub repository.\n' +
+              '  Files were served from the SkillHub cache and may be outdated.'
+            ));
+            spinner.start('Installing from cached files...');
+          }
           // Use sourceFormat from API response if available
           if (cachedFiles.sourceFormat) {
             sourceFormat = cachedFiles.sourceFormat as SourceFormat;

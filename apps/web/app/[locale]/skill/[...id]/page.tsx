@@ -339,6 +339,33 @@ export default async function SkillPage({ params }: SkillPageProps) {
           </div>
         )}
 
+        {/* Stale Skill Warning Banner */}
+        {dbSkill.isStale && (
+          <div className="bg-warning/10 border-b border-warning/20">
+            <div className="container-main py-3">
+              <div className="flex items-start gap-3 text-sm">
+                <span className="text-warning text-lg flex-shrink-0">⚠</span>
+                <div>
+                  <p className="text-warning-foreground dark:text-warning" dir="auto">
+                    {isRTL
+                      ? 'این مهارت ممکن است از مخزن GitHub اصلی حذف یا جابجا شده باشد. فایل‌ها از حافظه پنهان SkillHub ارائه می‌شوند و ممکن است قدیمی باشند.'
+                      : 'This skill may have been removed or moved from its GitHub repository. Files are served from the SkillHub cache and may be outdated.'}
+                  </p>
+                  <a
+                    href={`https://github.com/${skill.author}/${skill.repo}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 mt-1 text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 font-medium"
+                  >
+                    {isRTL ? 'بررسی مخزن GitHub' : 'Check GitHub repository'}
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Stats Bar */}
         <div className="bg-surface-elevated border-b border-border">
           <div className="container-main">

@@ -22,6 +22,8 @@ interface ReviewItem {
   i18n_priority?: number;
   content_hash_at_review?: string;
   set_verified?: boolean;
+  review_version?: number;
+  reviewer?: string;
 }
 
 function validateReviews(body: unknown): { reviews: ReviewItem[] } | { error: string } {
@@ -58,6 +60,18 @@ function validateReviews(body: unknown): { reviews: ReviewItem[] } | { error: st
     if (item.i18n_priority !== undefined && item.i18n_priority !== null) {
       if (typeof item.i18n_priority !== 'number' || !Number.isInteger(item.i18n_priority) || item.i18n_priority < 0 || item.i18n_priority > 2) {
         return { error: `reviews[${i}].i18n_priority must be an integer 0-2` };
+      }
+    }
+    // Validate review_version (positive integer)
+    if (item.review_version !== undefined && item.review_version !== null) {
+      if (typeof item.review_version !== 'number' || !Number.isInteger(item.review_version) || item.review_version < 1) {
+        return { error: `reviews[${i}].review_version must be a positive integer` };
+      }
+    }
+    // Validate reviewer (non-empty string, max 50 chars)
+    if (item.reviewer !== undefined && item.reviewer !== null) {
+      if (typeof item.reviewer !== 'string' || item.reviewer.length === 0 || item.reviewer.length > 50) {
+        return { error: `reviews[${i}].reviewer must be a non-empty string (max 50 chars)` };
       }
     }
   }
@@ -106,7 +120,7 @@ export async function POST(request: NextRequest) {
     // Insert review rows
     const dbReviews = reviews.map((r) => ({
       skillId: r.skill_id,
-      reviewer: 'claude-code' as const,
+      reviewer: r.reviewer || 'claude-code',
       aiScore: r.ai_score,
       instructionQuality: r.instruction_quality,
       descriptionPrecision: r.description_precision,
@@ -119,6 +133,7 @@ export async function POST(request: NextRequest) {
       needsImprovement: r.needs_improvement ?? undefined,
       i18nPriority: r.i18n_priority,
       contentHashAtReview: r.content_hash_at_review,
+      reviewVersion: r.review_version,
     }));
 
     await skillReviewQueries.createBatch(db, dbReviews);

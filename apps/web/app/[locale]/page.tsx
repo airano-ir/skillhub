@@ -21,7 +21,7 @@ async function getStats() {
       const db = createDb();
 
       // Browse-ready filter: exclude duplicates (matches browseReadyFilter in queries.ts)
-      const browseReady = sql`${skills.isDuplicate} = false`;
+      const browseReady = sql`${skills.isDuplicate} = false AND ${skills.isStale} = false`;
 
       // Run all independent count queries in parallel
       const [skillsResult, downloadsResult, categories, contributorsResult, totalIndexedResult] = await Promise.all([

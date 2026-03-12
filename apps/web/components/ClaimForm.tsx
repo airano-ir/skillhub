@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useSession, signIn } from 'next-auth/react';
-import { Loader2, CheckCircle, AlertCircle, Github, Clock, Plus, Minus, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
+import { Loader2, CheckCircle, AlertCircle, Github, Clock, Plus, Minus, ChevronDown, ChevronUp, ExternalLink, Trash2 } from 'lucide-react';
 import { fetchWithCsrf } from '@/lib/csrf-client';
 
 const isMirror = process.env.NEXT_PUBLIC_IS_PRIMARY === 'false';
@@ -33,6 +33,26 @@ interface ClaimFormProps {
     tabs: {
       remove: string;
       add: string;
+      removeRepo: string;
+    };
+    removeRepoForm: {
+      repoUrl: string;
+      repoUrlPlaceholder: string;
+      repoUrlHelp: string;
+      reason: string;
+      reasonPlaceholder: string;
+      submit: string;
+      submitting: string;
+    };
+    removeRepoSuccess: {
+      title: string;
+      description: string;
+      descriptionZero: string;
+    };
+    removeRepoError: {
+      notOwner: string;
+      invalidRepo: string;
+      parseError: string;
     };
     form: {
       skillId: string;
@@ -69,6 +89,8 @@ interface ClaimFormProps {
       foundSkillsIn: string;
       root: string;
       andMore: string;
+      reEnabledTitle: string;
+      reEnabledDescription: string;
     };
     error: {
       notOwner: string;
@@ -81,6 +103,7 @@ interface ClaimFormProps {
       rateLimitExceeded: string;
       networkTimeout: string;
       generic: string;
+      repoBlockedByOwner: string;
     };
     myRequests: {
       title: string;
@@ -122,15 +145,15 @@ interface AddRequest {
 
 export function ClaimForm({ translations }: ClaimFormProps) {
   const { data: session, status } = useSession();
-  const [activeTab, setActiveTab] = useState<'remove' | 'add'>('add'); // Default to 'add' tab
+  const [activeTab, setActiveTab] = useState<'remove' | 'add' | 'remove-repo'>('add'); // Default to 'add' tab
   const [expandedRequests, setExpandedRequests] = useState<Set<string>>(new Set());
 
   // Read tab from URL hash on mount and update on hash change
   useEffect(() => {
     const readHashTab = () => {
       const hash = window.location.hash.slice(1);
-      if (hash === 'remove' || hash === 'add') {
-        setActiveTab(hash);
+      if (hash === 'remove' || hash === 'add' || hash === 'remove-repo') {
+        setActiveTab(hash as 'remove' | 'add' | 'remove-repo');
       }
     };
     readHashTab();
@@ -139,7 +162,7 @@ export function ClaimForm({ translations }: ClaimFormProps) {
   }, []);
 
   // Update URL hash when tab changes
-  const handleTabChange = useCallback((tab: 'remove' | 'add') => {
+  const handleTabChange = useCallback((tab: 'remove' | 'add' | 'remove-repo') => {
     setActiveTab(tab);
     window.history.replaceState(null, '', `#${tab}`);
   }, []);
@@ -177,8 +200,18 @@ export function ClaimForm({ translations }: ClaimFormProps) {
   const [addHasSkillMd, setAddHasSkillMd] = useState(true);
   const [addSkillCount, setAddSkillCount] = useState(0);
   const [addSkillPaths, setAddSkillPaths] = useState<string[]>([]);
+  const [addReEnabled, setAddReEnabled] = useState(false);
   const [addRequests, setAddRequests] = useState<AddRequest[]>([]);
   const [loadingAddRequests, setLoadingAddRequests] = useState(false);
+
+  // Remove-repo form state
+  const [repoUrl, setRepoUrl] = useState('');
+  const [repoReason, setRepoReason] = useState('');
+  const [isSubmittingRepo, setIsSubmittingRepo] = useState(false);
+  const [repoError, setRepoError] = useState('');
+  const [repoSuccess, setRepoSuccess] = useState(false);
+  const [repoBlockedCount, setRepoBlockedCount] = useState(0);
+  const [repoName, setRepoName] = useState('');
 
   // Fetch user's existing requests
   useEffect(() => {
@@ -331,6 +364,9 @@ export function ClaimForm({ translations }: ClaimFormProps) {
           case 'ALREADY_PENDING':
             setAddError(translations.error.alreadyPending);
             break;
+          case 'REPO_BLOCKED_BY_OWNER':
+            setAddError(translations.error.repoBlockedByOwner);
+            break;
           case 'AUTH_REQUIRED':
             signIn('github');
             return;
@@ -342,6 +378,7 @@ export function ClaimForm({ translations }: ClaimFormProps) {
       }
 
       setAddSuccess(true);
+      setAddReEnabled(data.reEnabled ?? false);
       setAddHasSkillMd(data.hasSkillMd ?? true);
       setAddSkillCount(data.skillCount ?? 0);
       setAddSkillPaths(data.skillPaths ?? []);
@@ -352,6 +389,61 @@ export function ClaimForm({ translations }: ClaimFormProps) {
       setAddError(translations.error.generic);
     } finally {
       setIsSubmittingAdd(false);
+    }
+  };
+
+  const handleRepoRemovalSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!session) {
+      signIn('github');
+      return;
+    }
+
+    if (!repoUrl.trim()) return;
+
+    setIsSubmittingRepo(true);
+    setRepoError('');
+    setRepoSuccess(false);
+
+    try {
+      const res = await fetchWithCsrf('/api/skills/repo-removal-request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ repoUrl: repoUrl.trim(), reason: repoReason.trim() }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        switch (data.code) {
+          case 'NOT_OWNER':
+            setRepoError(translations.removeRepoError.notOwner);
+            break;
+          case 'INVALID_REPO':
+            setRepoError(translations.removeRepoError.invalidRepo);
+            break;
+          case 'PARSE_ERROR':
+            setRepoError(translations.removeRepoError.parseError);
+            break;
+          case 'AUTH_REQUIRED':
+            signIn('github');
+            return;
+          default:
+            console.error('Repo removal error:', data);
+            setRepoError(translations.error.generic);
+        }
+        return;
+      }
+
+      setRepoSuccess(true);
+      setRepoBlockedCount(data.blockedCount ?? 0);
+      setRepoName(data.repo ?? repoUrl.trim());
+      setRepoUrl('');
+      setRepoReason('');
+    } catch {
+      setRepoError(translations.error.generic);
+    } finally {
+      setIsSubmittingRepo(false);
     }
   };
 
@@ -457,11 +549,40 @@ export function ClaimForm({ translations }: ClaimFormProps) {
     );
   }
 
+  // Repo removal success state
+  if (repoSuccess) {
+    return (
+      <div className="card p-8 text-center">
+        <CheckCircle className="w-12 h-12 mx-auto mb-4 text-success" />
+        <h2 className="text-xl font-semibold text-text-primary mb-2">
+          {translations.removeRepoSuccess.title}
+        </h2>
+        <p className="text-text-secondary mb-6">
+          {repoBlockedCount > 0
+            ? translations.removeRepoSuccess.description
+                .replace('{count}', String(repoBlockedCount))
+                .replace('{repo}', repoName)
+            : translations.removeRepoSuccess.descriptionZero}
+        </p>
+        <button
+          onClick={() => { setRepoSuccess(false); setRepoBlockedCount(0); setRepoName(''); }}
+          className="btn-secondary"
+        >
+          {translations.success.viewRequests}
+        </button>
+      </div>
+    );
+  }
+
   // Add success state
   if (addSuccess) {
     // Determine which message to show
+    let successTitle = translations.addSuccess.title;
     let successDescription: string | React.ReactNode;
-    if (addSkillCount > 1) {
+    if (addReEnabled) {
+      successTitle = translations.addSuccess.reEnabledTitle;
+      successDescription = translations.addSuccess.reEnabledDescription;
+    } else if (addSkillCount > 1) {
       successDescription = (
         <>
           {translations.addSuccess.descriptionMultiplePrefix}
@@ -479,7 +600,7 @@ export function ClaimForm({ translations }: ClaimFormProps) {
       <div className="card p-8 text-center">
         <CheckCircle className="w-12 h-12 mx-auto mb-4 text-success" />
         <h2 className="text-xl font-semibold text-text-primary mb-2">
-          {translations.addSuccess.title}
+          {successTitle}
         </h2>
         <p className="text-text-secondary mb-4">
           {successDescription}
@@ -500,7 +621,7 @@ export function ClaimForm({ translations }: ClaimFormProps) {
           </div>
         )}
         <button
-          onClick={() => setAddSuccess(false)}
+          onClick={() => { setAddSuccess(false); setAddReEnabled(false); }}
           className="btn-secondary"
         >
           {translations.addSuccess.viewRequests}
@@ -534,6 +655,17 @@ export function ClaimForm({ translations }: ClaimFormProps) {
         >
           <Plus className="w-4 h-4" />
           {translations.tabs.add}
+        </button>
+        <button
+          onClick={() => handleTabChange('remove-repo')}
+          className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === 'remove-repo'
+              ? 'border-error text-error'
+              : 'border-transparent text-text-muted hover:text-text-primary'
+          }`}
+        >
+          <Trash2 className="w-4 h-4" />
+          {translations.tabs.removeRepo}
         </button>
       </div>
 
@@ -650,6 +782,79 @@ export function ClaimForm({ translations }: ClaimFormProps) {
             )}
           </div>
         </>
+      )}
+
+      {/* Remove Repository Form */}
+      {activeTab === 'remove-repo' && (
+        <div className="card p-6">
+          <form onSubmit={handleRepoRemovalSubmit} className="space-y-4">
+            <div>
+              <label
+                htmlFor="repoUrl"
+                className="block text-sm font-medium text-text-primary mb-2"
+              >
+                {translations.removeRepoForm.repoUrl}
+              </label>
+              <input
+                type="text"
+                id="repoUrl"
+                value={repoUrl}
+                onChange={(e) => setRepoUrl(e.target.value)}
+                placeholder={translations.removeRepoForm.repoUrlPlaceholder}
+                className="w-full px-4 py-2 border border-border rounded-lg bg-surface text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-error"
+                dir="ltr"
+                required
+              />
+              <p className="text-xs text-text-muted mt-1">
+                {translations.removeRepoForm.repoUrlHelp}
+              </p>
+            </div>
+
+            <div>
+              <label
+                htmlFor="repoReason"
+                className="block text-sm font-medium text-text-primary mb-2"
+              >
+                {translations.removeRepoForm.reason} <span className="text-text-muted">{translations.optional}</span>
+              </label>
+              <textarea
+                id="repoReason"
+                value={repoReason}
+                onChange={(e) => setRepoReason(e.target.value)}
+                placeholder={translations.removeRepoForm.reasonPlaceholder}
+                rows={3}
+                className="w-full px-4 py-2 border border-border rounded-lg bg-surface text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+              />
+            </div>
+
+            {repoError && (
+              <div className="p-3 bg-error-bg border border-error/30 rounded-lg">
+                <div className="flex items-center gap-2 text-error">
+                  <AlertCircle className="w-4 h-4" />
+                  <p className="text-sm">{repoError}</p>
+                </div>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={isSubmittingRepo || !repoUrl.trim()}
+              className="w-full justify-center inline-flex items-center gap-2 px-4 py-2 bg-error text-white rounded-lg font-medium hover:bg-error/90 transition-colors disabled:opacity-50"
+            >
+              {isSubmittingRepo ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  {translations.removeRepoForm.submitting}
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4" />
+                  {translations.removeRepoForm.submit}
+                </>
+              )}
+            </button>
+          </form>
+        </div>
       )}
 
       {/* Add Form */}

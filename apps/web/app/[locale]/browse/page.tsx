@@ -186,7 +186,7 @@ export default async function BrowsePage({ params, searchParams }: BrowsePagePro
 
   const emptyStateTranslations = {
     noResults: t('noResults') || 'No skills found',
-    noResultsWithQuery: t('noResultsWithQuery') || 'No results for "{query}"',
+    noResultsWithQuery: t('noResultsWithQuery', { query: searchParamsResolved.q || '' }),
     tryDifferent: t('emptyState.tryDifferent') || 'Try different search terms or adjust your filters',
     clearFilters: t('emptyState.clearFilters') || 'Clear filters',
     browseAll: t('emptyState.browseAll') || 'Browse Featured Skills',
