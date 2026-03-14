@@ -68,7 +68,7 @@ export const skillQueries = {
       verified?: boolean;
       limit?: number;
       offset?: number;
-      sortBy?: 'stars' | 'downloads' | 'rating' | 'updated' | 'lastDownloaded';
+      sortBy?: 'stars' | 'downloads' | 'rating' | 'updated' | 'lastDownloaded' | 'aiScore' | 'recommended';
       sortOrder?: 'asc' | 'desc';
     }
   ) => {
@@ -167,6 +167,8 @@ export const skillQueries = {
       rating: skills.rating,
       updated: skills.updatedAt,
       lastDownloaded: skills.lastDownloadedAt,
+      aiScore: skills.latestAiScore,
+      recommended: skills.downloadCount, // fallback column, actual ordering uses custom SQL
     }[sortBy];
 
     // Secondary sort: when primary values are tied/zero, fall back to another metric
@@ -176,14 +178,21 @@ export const skillQueries = {
       rating: skills.githubStars,
       updated: skills.githubStars,
       lastDownloaded: skills.downloadCount,
+      aiScore: skills.downloadCount,
+      recommended: skills.githubStars,
     }[sortBy];
 
     const orderFn = sortOrder === 'asc' ? asc : desc;
 
-    // For lastDownloaded sort, use NULLS LAST so never-downloaded skills
+    // For lastDownloaded and aiScore sorts, use NULLS LAST so null-valued skills
     // don't dominate the first pages (PostgreSQL puts NULLs first in DESC by default)
-    const primaryOrder = sortBy === 'lastDownloaded'
+    // 'recommended' sort: ai-reviewed skills with score >= 75 first (by score desc), then rest by downloads
+    const primaryOrder = sortBy === 'recommended'
+      ? sql`CASE WHEN ${skills.reviewStatus} IN ('ai-reviewed', 'verified') AND ${skills.latestAiScore} >= 75 THEN 0 ELSE 1 END ASC, CASE WHEN ${skills.reviewStatus} IN ('ai-reviewed', 'verified') AND ${skills.latestAiScore} >= 75 THEN ${skills.latestAiScore} ELSE 0 END DESC, ${skills.downloadCount} DESC`
+      : sortBy === 'lastDownloaded'
       ? sql`${skills.lastDownloadedAt} DESC NULLS LAST`
+      : sortBy === 'aiScore'
+      ? sql`${skills.latestAiScore} DESC NULLS LAST`
       : orderFn(orderByColumn);
 
     // If filtering by category, use JOIN with skillCategories
@@ -459,6 +468,49 @@ export const skillQueries = {
   },
 
   /**
+   * Get AI-reviewed skills with pagination
+   */
+  getReviewedSkills: async (db: DB, sortBy: 'reviewDate' | 'aiScore' = 'reviewDate', limit = 12, offset = 0, minScore = 50) => {
+    const order = sortBy === 'aiScore'
+      ? sql`${skills.latestAiScore} DESC NULLS LAST, ${skills.latestReviewDate} DESC NULLS LAST`
+      : sql`${skills.latestReviewDate} DESC NULLS LAST, ${skills.latestAiScore} DESC NULLS LAST`;
+    const conditions = [
+      eq(skills.isBlocked, false),
+      eq(skills.sourceFormat, 'skill.md'),
+      browseReadyFilter,
+      inArray(skills.reviewStatus, ['ai-reviewed', 'verified']),
+    ];
+    if (minScore > 0) {
+      conditions.push(sql`${skills.latestAiScore} >= ${minScore}`);
+    }
+    return db.select().from(skills)
+      .where(and(...conditions))
+      .orderBy(order)
+      .limit(limit)
+      .offset(offset);
+  },
+
+  /**
+   * Count AI-reviewed skills
+   */
+  countReviewedSkills: async (db: DB, minScore = 50) => {
+    const conditions = [
+      eq(skills.isBlocked, false),
+      eq(skills.sourceFormat, 'skill.md'),
+      browseReadyFilter,
+      inArray(skills.reviewStatus, ['ai-reviewed', 'verified']),
+    ];
+    if (minScore > 0) {
+      conditions.push(sql`${skills.latestAiScore} >= ${minScore}`);
+    }
+    const result = await db
+      .select({ count: sql<number>`cast(count(*) as int)` })
+      .from(skills)
+      .where(and(...conditions));
+    return result[0]?.count ?? 0;
+  },
+
+  /**
    * Get all skills for sitemap generation (lightweight: id, updatedAt, githubOwner only)
    */
   getAllForSitemap: async (db: DB) => {
@@ -530,12 +582,14 @@ export const skillQueries = {
       .orderBy(
         desc(
           sql`(
-            -- Quality Score (0-60 points)
+            -- Quality Score (0-80 points: base 60 + review bonus 20)
             (
               CASE WHEN LENGTH(COALESCE(${skills.description}, '')) > 200 THEN 30
                    ELSE LENGTH(COALESCE(${skills.description}, '')) / 10 END +
               CASE WHEN ${skills.securityStatus} = 'pass' THEN 20 ELSE 0 END +
-              CASE WHEN ${skills.rawContent} IS NOT NULL THEN 10 ELSE 0 END
+              CASE WHEN ${skills.rawContent} IS NOT NULL THEN 10 ELSE 0 END +
+              CASE WHEN ${skills.latestAiScore} IS NOT NULL AND ${skills.reviewStatus} IN ('ai-reviewed', 'verified')
+                   THEN LEAST(${skills.latestAiScore} / 5, 20) ELSE 0 END
             ) * ${wQuality} +
 
             -- Freshness Score (0-50 points)
@@ -2782,11 +2836,17 @@ export const skillReviewQueries = {
   updateSkillReviewStatus: async (
     db: DB,
     skillId: string,
-    reviewStatus: string
+    reviewStatus: string,
+    aiScore?: number,
+    reviewDate?: Date
   ) => {
     return db
       .update(skills)
-      .set({ reviewStatus })
+      .set({
+        reviewStatus,
+        ...(aiScore !== undefined ? { latestAiScore: aiScore } : {}),
+        ...(reviewDate ? { latestReviewDate: reviewDate } : {}),
+      })
       .where(eq(skills.id, skillId));
   },
 };

@@ -38,12 +38,16 @@ async function getSkills(params: {
     const limit = 20;
     const page = parseInt(params.page || '1');
 
+    // Default sort: lastDownloaded for browsing, recommended when searching
+    const defaultSort = params.q ? 'recommended' : 'lastDownloaded';
+    const effectiveSort = params.sort || defaultSort;
+
     const hash = hashSearchParams({
       q: params.q,
       category: params.category,
       platform: params.platform && params.platform !== 'all' ? params.platform : undefined,
       format: params.format || 'skill.md',
-      sort: params.sort || 'lastDownloaded',
+      sort: effectiveSort,
       page,
     });
 
@@ -54,12 +58,14 @@ async function getSkills(params: {
         const db = createDb();
         const offset = (page - 1) * limit;
 
-        const sortMap: Record<string, 'stars' | 'downloads' | 'rating' | 'updated' | 'lastDownloaded'> = {
+        const sortMap: Record<string, 'stars' | 'downloads' | 'rating' | 'updated' | 'lastDownloaded' | 'aiScore' | 'recommended'> = {
           'stars': 'stars',
           'downloads': 'downloads',
           'recent': 'updated',
           'rating': 'rating',
           'lastDownloaded': 'lastDownloaded',
+          'aiScore': 'aiScore',
+          'recommended': 'recommended',
         };
 
         const filterOptions = {
@@ -67,7 +73,7 @@ async function getSkills(params: {
           category: params.category,
           platform: params.platform && params.platform !== 'all' ? params.platform : undefined,
           sourceFormat: params.format || 'skill.md',
-          sortBy: sortMap[params.sort || 'lastDownloaded'] || 'lastDownloaded',
+          sortBy: sortMap[effectiveSort] || defaultSort,
           sortOrder: 'desc' as const,
           limit,
           offset,
@@ -117,11 +123,13 @@ export default async function BrowsePage({ params, searchParams }: BrowsePagePro
   const tCommon = await getTranslations('common');
 
   const sortOptions = [
+    { id: 'recommended', name: t('filters.sortOptions.recommended') },
     { id: 'lastDownloaded', name: t('filters.sortOptions.lastDownloaded') },
     { id: 'downloads', name: t('filters.sortOptions.downloads') },
-    { id: 'stars', name: t('filters.sortOptions.stars') },
+    { id: 'aiScore', name: t('filters.sortOptions.aiScore') },
     { id: 'recent', name: t('filters.sortOptions.recent') },
     { id: 'rating', name: t('filters.sortOptions.rating') },
+    { id: 'stars', name: t('filters.sortOptions.stars') },
   ];
 
   // Fetch categories hierarchically for filter dropdown with translations (cached 12h)
@@ -202,9 +210,10 @@ export default async function BrowsePage({ params, searchParams }: BrowsePagePro
 
   // Get category name for active filters display
   const currentCategory = searchParamsResolved.category;
-  const currentSort = searchParamsResolved.sort || 'lastDownloaded';
+  const defaultSort = searchParamsResolved.q ? 'recommended' : 'lastDownloaded';
+  const currentSort = searchParamsResolved.sort || defaultSort;
   const currentFormat = searchParamsResolved.format || '';
-  const hasActiveFilters = !!(searchParamsResolved.q || currentCategory || (currentSort && currentSort !== 'lastDownloaded') || currentFormat);
+  const hasActiveFilters = !!(searchParamsResolved.q || currentCategory || (currentSort && currentSort !== defaultSort) || currentFormat);
 
   // Find category name from hierarchical categories
   let categoryName = '';

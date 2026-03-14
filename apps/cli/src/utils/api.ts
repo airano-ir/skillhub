@@ -126,6 +126,8 @@ export interface SkillInfo {
   sourceFormat?: string;
   rating?: number | null;
   ratingCount?: number | null;
+  reviewStatus?: string | null;
+  aiScore?: number | null;
   isVerified: boolean;
   compatibility: {
     platforms: string[];

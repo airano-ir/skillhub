@@ -67,6 +67,8 @@ export async function GET(request: NextRequest) {
         securityStatus: skill.securityStatus,
         isVerified: skill.isVerified,
         compatibility: skill.compatibility,
+        reviewStatus: skill.reviewStatus,
+        aiScore: skill.latestAiScore,
       })),
     };
 

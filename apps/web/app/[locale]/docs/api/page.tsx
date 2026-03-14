@@ -61,7 +61,7 @@ export default async function ApiDocsPage({
         { name: 'format', type: 'string', required: false, description: t('api.params.format'), default: 'skill.md' },
         { name: 'verified', type: 'boolean', required: false, description: t('api.params.verified') },
         { name: 'minStars', type: 'number', required: false, description: t('api.params.minStars') },
-        { name: 'sort', type: 'string', required: false, description: t('api.params.sort') + ' (stars, downloads, rating, recent)', default: 'downloads' },
+        { name: 'sort', type: 'string', required: false, description: t('api.params.sort') + ' (recommended, aiScore, downloads, stars, rating, recent)', default: 'recommended' },
         { name: 'page', type: 'number', required: false, description: t('api.params.page'), default: '1' },
         { name: 'limit', type: 'number', required: false, description: t('api.params.limit'), default: '20' },
       ],
@@ -79,7 +79,9 @@ export default async function ApiDocsPage({
       "rating": 4.5,
       "ratingCount": 23,
       "isVerified": true,
-      "compatibility": { "platforms": ["claude", "cursor"] }
+      "compatibility": { "platforms": ["claude", "cursor"] },
+      "reviewStatus": "ai-reviewed",
+      "aiScore": 85
     }
   ],
   "pagination": {
@@ -88,7 +90,7 @@ export default async function ApiDocsPage({
     "total": 150,
     "totalPages": 8
   },
-  "searchEngine": "meilisearch"
+  "searchEngine": "postgresql"
 }`,
       notes: t('api.notes.searchFallback'),
     },
@@ -115,7 +117,17 @@ export default async function ApiDocsPage({
   "isVerified": true,
   "compatibility": { "platforms": ["claude"] },
   "rawContent": "# Code Review\\n...",
-  "sourceFormat": "skill.md"
+  "sourceFormat": "skill.md",
+  "reviewStatus": "ai-reviewed",
+  "aiScore": 85,
+  "review": {
+    "ai_score": 85,
+    "instruction_quality": 90,
+    "description_precision": 80,
+    "usefulness": 85,
+    "technical_soundness": 85,
+    "review_notes": "RATIONALE: ..."
+  }
 }`,
       notes: t('api.notes.viewCount'),
     },

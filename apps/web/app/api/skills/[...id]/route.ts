@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { createDb, skillQueries } from '@skillhub/db';
+import { createDb, skillQueries, skillReviewQueries } from '@skillhub/db';
 import { shouldCountView, getOrSetCache, cacheKeys, cacheTTL } from '@/lib/cache';
 
 // Create database connection
@@ -35,12 +35,19 @@ export async function GET(
     const { id } = await params;
     const skillId = id.join('/');
 
-    // Get skill from database (cached 1h)
-    const skill = await getOrSetCache(
-      cacheKeys.skill(skillId),
-      cacheTTL.skill,
-      () => skillQueries.getById(db, skillId)
-    );
+    // Get skill and latest review from database (cached 1h)
+    const [skill, review] = await Promise.all([
+      getOrSetCache(
+        cacheKeys.skill(skillId),
+        cacheTTL.skill,
+        () => skillQueries.getById(db, skillId)
+      ),
+      getOrSetCache(
+        cacheKeys.skillReview(skillId),
+        cacheTTL.skill,
+        () => skillReviewQueries.getLatestBySkillId(db, skillId)
+      ),
+    ]);
 
     if (!skill) {
       return NextResponse.json(
@@ -83,9 +90,21 @@ export async function GET(
       triggers: skill.triggers,
       rawContent: skill.rawContent,
       sourceFormat: skill.sourceFormat || 'skill.md',
+      reviewStatus: skill.reviewStatus,
+      aiScore: skill.latestAiScore,
       createdAt: skill.createdAt,
       updatedAt: skill.updatedAt,
       indexedAt: skill.indexedAt,
+      review: review ? {
+        aiScore: review.aiScore,
+        instructionQuality: review.instructionQuality,
+        descriptionPrecision: review.descriptionPrecision,
+        usefulness: review.usefulness,
+        technicalSoundness: review.technicalSoundness,
+        reviewNotes: review.reviewNotes,
+        reviewer: review.reviewer,
+        reviewedAt: review.reviewedAt,
+      } : null,
     });
   } catch (error) {
     console.error('Error fetching skill:', error);

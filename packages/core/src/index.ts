@@ -34,6 +34,10 @@ export {
 // Validator
 export { validateSkill, isValidSkill, formatValidationSummary } from './validator.js';
 
+// Review Notes Parser
+export type { ParsedReviewNotes } from './review-notes-parser.js';
+export { parseReviewNotes } from './review-notes-parser.js';
+
 // Security Scanner
 export {
   scanSecurity,

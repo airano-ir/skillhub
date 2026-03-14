@@ -39,7 +39,12 @@ export async function install(skillId: string, options: InstallOptions): Promise
       try {
         skillInfo = await getSkill(skillId);
         if (skillInfo) {
-          spinner.succeed(`Found in registry: ${skillInfo.name}`);
+          const reviewBadge = skillInfo.aiScore && skillInfo.reviewStatus === 'ai-reviewed'
+            ? chalk.dim(` | AI: ${skillInfo.aiScore}/100`)
+            : skillInfo.reviewStatus === 'verified'
+            ? chalk.green(` | AI: ${skillInfo.aiScore}/100 ✓`)
+            : '';
+          spinner.succeed(`Found in registry: ${skillInfo.name}${reviewBadge}`);
           spinner.start('Preparing installation...');
         }
       } catch (error) {

@@ -5,7 +5,7 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { HeroSearch } from '@/components/HeroSearch';
 import { SkillCard } from '@/components/SkillCard';
-import { createDb, categoryQueries, skillQueries, skills, sql } from '@skillhub/db';
+import { createDb, skillQueries, skills, sql } from '@skillhub/db';
 import { formatCompactNumber } from '@/lib/format-number';
 import { getPageAlternates } from '@/lib/seo';
 import { getOrSetCache, cacheKeys, cacheTTL } from '@/lib/cache';
@@ -24,7 +24,7 @@ async function getStats() {
       const browseReady = sql`${skills.isDuplicate} = false AND ${skills.isStale} = false`;
 
       // Run all independent count queries in parallel
-      const [skillsResult, downloadsResult, categories, contributorsResult, totalIndexedResult] = await Promise.all([
+      const [skillsResult, downloadsResult, contributorsResult, totalIndexedResult, reviewedResult] = await Promise.all([
         // Get total skills count (browse-ready, SKILL.md only)
         db.select({ count: sql<number>`count(*)::int` })
           .from(skills)
@@ -32,8 +32,6 @@ async function getStats() {
         // Get total downloads (ALL skills — downloads are real user actions)
         db.select({ sum: sql<number>`coalesce(sum(${skills.downloadCount}), 0)::int` })
           .from(skills),
-        // Get total categories
-        categoryQueries.getAll(db),
         // Get unique contributors (browse-ready skills only)
         db.select({ count: sql<number>`count(distinct ${skills.githubOwner})::int` })
           .from(skills)
@@ -42,14 +40,18 @@ async function getStats() {
         db.select({ count: sql<number>`count(*)::int` })
           .from(skills)
           .where(sql`${skills.isBlocked} = false`),
+        // Get AI-reviewed skills count
+        db.select({ count: sql<number>`count(*)::int` })
+          .from(skills)
+          .where(sql`${skills.sourceFormat} = 'skill.md' AND ${skills.isBlocked} = false AND ${browseReady} AND ${skills.reviewStatus} IN ('ai-reviewed', 'verified')`),
       ]);
 
       return {
         totalSkills: skillsResult[0]?.count ?? 0,
         totalDownloads: downloadsResult[0]?.sum ?? 0,
-        totalCategories: categories.length,
         totalContributors: contributorsResult[0]?.count ?? 0,
         totalIndexed: totalIndexedResult[0]?.count ?? 0,
+        totalReviewed: reviewedResult[0]?.count ?? 0,
         platforms: 5,
       };
     });
@@ -110,10 +112,10 @@ export default async function HomePage({
   ]);
 
   const stats = [
-    { value: statsData ? formatCompactNumber(statsData.totalSkills, locale) : '۰', label: t('stats.skills'), icon: Layers },
-    { value: statsData ? formatCompactNumber(statsData.totalDownloads, locale) : '۰', label: t('stats.downloads'), icon: Download },
-    { value: statsData ? formatCompactNumber(statsData.totalContributors, locale) : '۰', label: t('stats.contributors'), icon: Users },
-    { value: statsData ? formatCompactNumber(statsData.totalCategories || 8, locale) : '۸', label: t('stats.categories'), icon: Sparkles },
+    { value: statsData ? formatCompactNumber(statsData.totalSkills, locale) : '۰', label: t('stats.skills'), icon: Layers, href: `/${locale}/browse` },
+    { value: statsData ? formatCompactNumber(statsData.totalDownloads, locale) : '۰', label: t('stats.downloads'), icon: Download, href: `/${locale}/browse?sort=downloads` },
+    { value: statsData ? formatCompactNumber(statsData.totalContributors, locale) : '۰', label: t('stats.contributors'), icon: Users, href: `/${locale}/attribution` },
+    { value: statsData ? formatCompactNumber(statsData.totalReviewed ?? 0, locale) : '۰', label: t('stats.reviewed'), icon: Sparkles, href: `/${locale}/reviewed` },
   ];
 
   const steps = [
@@ -189,17 +191,17 @@ export default async function HomePage({
           <div className="container-main">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
               {stats.map((stat, index) => (
-                <div key={index} className="text-center">
-                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-primary-50 text-primary-600 mb-3">
+                <Link key={index} href={stat.href} className="text-center group">
+                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-primary-50 text-primary-600 mb-3 group-hover:bg-primary-100 transition-colors">
                     <stat.icon className="w-6 h-6" />
                   </div>
                   <div className="text-3xl font-bold text-text-primary ltr-nums mb-1">
                     {stat.value}
                   </div>
-                  <div className="text-text-secondary">
+                  <div className="text-text-secondary group-hover:text-primary-600 transition-colors">
                     {stat.label}
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
             <p className="text-center text-text-muted text-sm mt-6">

@@ -44,6 +44,7 @@ npx skillhub uninstall <skill-name>  # when done
 
 Rules:
 - Only install skills with security status "Pass"
+- Prefer skills with AI review scores (shown as "AI 75+" in results)
 - After installing, read the SKILL.md and follow its instructions
 - Search during planning phase for best results`,
 
@@ -55,9 +56,9 @@ npx skillhub install <skill-id> --project
 npx skillhub uninstall <skill-name>
 \`\`\`
 
-Search for unfamiliar tech or complex tasks. Only install "Pass" security status. Read SKILL.md after install.`,
+Search for unfamiliar tech or complex tasks. Only install "Pass" security. Prefer "AI 75+" reviewed skills. Read SKILL.md after install.`,
 
-    oneshot: `You have access to SkillHub (${count} AI agent skills, ${siteUrl}). For unfamiliar or complex tasks: \`npx skillhub search "<query>" --limit 5\` then \`npx skillhub install <id> --project\`. Only "Pass" security. Read SKILL.md after install. Uninstall when done.`,
+    oneshot: `You have access to SkillHub (${count} AI agent skills, ${siteUrl}). For unfamiliar or complex tasks: \`npx skillhub search "<query>" --limit 5\` then \`npx skillhub install <id> --project\`. Only "Pass" security, prefer "AI 75+" reviewed. Read SKILL.md after install. Uninstall when done.`,
   };
 }
 

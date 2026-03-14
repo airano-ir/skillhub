@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { headers } from 'next/headers';
 import {
   Star, Download, Shield, CheckCircle, Copy,
-  ExternalLink, Github, Calendar, User, Tag, ChevronRight, Eye
+  ExternalLink, Github, Calendar, User, Tag, ChevronRight, Eye, Sparkles
 } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
@@ -12,8 +12,8 @@ import { FavoriteButton } from '@/components/FavoriteButton';
 import { RatingStars } from '@/components/RatingStars';
 import { InstallSection } from '@/components/InstallSection';
 import { ShareButton } from '@/components/ShareButton';
-import { createDb, skillQueries } from '@skillhub/db';
-import { FORMAT_LABELS } from 'skillhub-core';
+import { createDb, skillQueries, skillReviewQueries } from '@skillhub/db';
+import { FORMAT_LABELS, parseReviewNotes } from 'skillhub-core';
 import { formatCompactNumber } from '@/lib/format-number';
 import { shouldCountView, getOrSetCache, cacheKeys, cacheTTL } from '@/lib/cache';
 import type { Metadata } from 'next';
@@ -59,6 +59,36 @@ async function getSkill(skillId: string) {
   }
 }
 
+// Get skill review with Redis caching (1 hour TTL)
+async function getSkillReview(skillId: string) {
+  try {
+    return await getOrSetCache(cacheKeys.skillReview(skillId), cacheTTL.skill, async () => {
+      const db = createDb();
+      return await skillReviewQueries.getLatestBySkillId(db, skillId);
+    });
+  } catch {
+    return null;
+  }
+}
+
+// Score bar component for the review section
+function ScoreBar({ label, score }: { label: string; score: number | null | undefined }) {
+  if (score === null || score === undefined) return null;
+  const percentage = Math.min(score, 100);
+  const color = score >= 75 ? 'bg-success' : score >= 50 ? 'bg-gold' : 'bg-text-muted';
+  return (
+    <div>
+      <div className="flex justify-between text-xs mb-1">
+        <span className="text-text-muted">{label}</span>
+        <span className="text-text-primary font-medium ltr-nums">{score}</span>
+      </div>
+      <div className="h-1.5 bg-surface-subtle rounded-full">
+        <div className={`h-full rounded-full ${color}`} style={{ width: `${percentage}%` }} />
+      </div>
+    </div>
+  );
+}
+
 export default async function SkillPage({ params }: SkillPageProps) {
   const { locale, id } = await params;
   setRequestLocale(locale);
@@ -68,8 +98,11 @@ export default async function SkillPage({ params }: SkillPageProps) {
   const skillId = id.join('/');
   const isRTL = locale === 'fa';
 
-  // Get skill from database
-  const dbSkill = await getSkill(skillId);
+  // Get skill and review data from database (in parallel)
+  const [dbSkill, review] = await Promise.all([
+    getSkill(skillId),
+    getSkillReview(skillId),
+  ]);
 
   if (!dbSkill) {
     notFound();
@@ -123,6 +156,10 @@ export default async function SkillPage({ params }: SkillPageProps) {
     ratingCount: dbSkill.ratingCount || 0,
     sourceFormat: dbSkill.sourceFormat || 'skill.md',
   };
+
+  // Parse review notes for structured display
+  const parsedNotes = review?.reviewNotes ? parseReviewNotes(review.reviewNotes) : null;
+  const hasReview = review && review.aiScore && (dbSkill.reviewStatus === 'ai-reviewed' || dbSkill.reviewStatus === 'verified');
 
   // Content section title based on source format (uses FORMAT_LABELS from skillhub-core)
   const getContentTitle = (format: string) => {
@@ -255,12 +292,13 @@ export default async function SkillPage({ params }: SkillPageProps) {
                 </p>
 
                 {/* Author, Version, License & Last Update */}
-                <div className="flex flex-wrap items-center gap-4 text-sm">
+                <div className="flex flex-wrap items-center gap-3 text-sm">
                   <a
                     href={`https://github.com/${skill.author}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-2 text-text-secondary hover:text-primary-600 transition-colors"
+                    aria-label={`GitHub profile: ${skill.author}`}
                   >
                     <div className="w-6 h-6 rounded-full bg-surface-subtle flex items-center justify-center">
                       <User className="w-4 h-4" />
@@ -268,47 +306,66 @@ export default async function SkillPage({ params }: SkillPageProps) {
                     <span className="font-medium">@{skill.author}</span>
                   </a>
                   {skill.version && (
-                    <>
-                      <span className="text-text-muted">•</span>
-                      <span className="flex items-center gap-1.5 text-text-muted">
-                        <Tag className="w-4 h-4" />
-                        <span className="ltr-nums">v{skill.version}</span>
-                      </span>
-                    </>
+                    <span className="flex items-center gap-1.5 text-text-muted bg-surface-subtle px-2 py-0.5 rounded">
+                      <Tag className="w-3.5 h-3.5" />
+                      <span className="ltr-nums">v{skill.version}</span>
+                    </span>
                   )}
-                  <span className="text-text-muted">•</span>
                   <span className="text-text-muted bg-surface-subtle px-2 py-0.5 rounded">
                     {skill.license}
                   </span>
-                  <span className="text-text-muted">•</span>
-                  <span className="flex items-center gap-1.5 text-text-muted">
-                    <Calendar className="w-4 h-4" />
+                  <span className="flex items-center gap-1.5 text-text-muted bg-surface-subtle px-2 py-0.5 rounded">
+                    <Calendar className="w-3.5 h-3.5" />
                     <span className="ltr-nums">{skill.updatedAt}</span>
                   </span>
                 </div>
               </div>
 
-              {/* Right: Actions */}
-              <div className="flex items-center gap-3">
-                <FavoriteButton skillId={skill.id} size="lg" showLabel={true} />
-                <ShareButton
-                  title={skill.name}
-                  path={`/${locale}/skill/${skill.id}`}
-                  translations={{
-                    share: t('share.button'),
-                    copied: t('share.copied'),
-                    copyLink: t('share.copyLink'),
-                  }}
-                />
-                <a
-                  href={skill.repository}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="p-3 rounded-xl bg-surface-elevated hover:bg-surface-subtle border border-border text-text-secondary hover:text-text-primary transition-colors"
-                  title="GitHub"
-                >
-                  <Github className="w-5 h-5" />
-                </a>
+              {/* Right: Actions + AI Score Summary */}
+              <div className="flex flex-col items-start lg:items-end gap-4">
+                <div className="flex items-center gap-2">
+                  <FavoriteButton skillId={skill.id} size="lg" showLabel={false} />
+                  <ShareButton
+                    title={skill.name}
+                    path={`/${locale}/skill/${skill.id}`}
+                    translations={{
+                      share: t('share.button'),
+                      copied: t('share.copied'),
+                      copyLink: t('share.copyLink'),
+                    }}
+                  />
+                  <a
+                    href={skill.repository}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-3 rounded-xl bg-surface-elevated hover:bg-surface-subtle border border-border text-text-secondary hover:text-text-primary transition-colors"
+                    aria-label="GitHub repository"
+                  >
+                    <Github className="w-5 h-5" />
+                  </a>
+                  {skill.homepage && (
+                    <a
+                      href={skill.homepage}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-3 rounded-xl bg-surface-elevated hover:bg-surface-subtle border border-border text-text-secondary hover:text-text-primary transition-colors"
+                      aria-label={isRTL ? 'وبسایت' : 'Homepage'}
+                    >
+                      <ExternalLink className="w-5 h-5" />
+                    </a>
+                  )}
+                </div>
+
+                {/* Compact AI Review Score */}
+                {hasReview && (
+                  <div className="flex items-center gap-3 px-4 py-3 bg-surface-elevated rounded-xl border border-border">
+                    <Sparkles className={`w-5 h-5 ${review.aiScore! >= 75 ? 'text-success' : 'text-gold'}`} />
+                    <span className={`text-2xl font-bold ltr-nums ${review.aiScore! >= 75 ? 'text-success' : review.aiScore! >= 50 ? 'text-gold' : 'text-text-primary'}`}>
+                      {review.aiScore}
+                    </span>
+                    <span className="text-sm text-text-muted">{t('review.outOf100')}</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -369,8 +426,8 @@ export default async function SkillPage({ params }: SkillPageProps) {
         {/* Stats Bar */}
         <div className="bg-surface-elevated border-b border-border">
           <div className="container-main">
-            <div className="flex items-center gap-6 lg:gap-10 py-4 overflow-x-auto">
-              <div className="flex items-center gap-2 min-w-fit">
+            <div className="flex flex-wrap items-center gap-4 lg:gap-8 py-4">
+              <div className="flex items-center gap-2">
                 <RatingStars
                   skillId={skill.id}
                   averageRating={skill.rating}
@@ -378,29 +435,29 @@ export default async function SkillPage({ params }: SkillPageProps) {
                   size="sm"
                 />
               </div>
-              <div className="h-6 w-px bg-border" />
-              <div className="flex items-center gap-2 min-w-fit">
-                <Star className="w-5 h-5 text-gold" />
+              <div className="hidden sm:block h-5 w-px bg-border" />
+              <div className="flex items-center gap-2">
+                <Star className="w-4 h-4 lg:w-5 lg:h-5 text-gold" />
                 <span className="font-semibold text-text-primary ltr-nums">
                   {formatCompactNumber(skill.stars, locale)}
                 </span>
-                <span className="text-text-muted text-sm">{tCommon('stars')}</span>
+                <span className="text-text-muted text-sm hidden sm:inline">{tCommon('stars')}</span>
               </div>
-              <div className="h-6 w-px bg-border" />
-              <div className="flex items-center gap-2 min-w-fit">
-                <Download className="w-5 h-5 text-primary-500" />
+              <div className="hidden sm:block h-5 w-px bg-border" />
+              <div className="flex items-center gap-2">
+                <Download className="w-4 h-4 lg:w-5 lg:h-5 text-primary-500" />
                 <span className="font-semibold text-text-primary ltr-nums">
                   {formatCompactNumber(skill.downloads, locale)}
                 </span>
-                <span className="text-text-muted text-sm">{tCommon('downloads')}</span>
+                <span className="text-text-muted text-sm hidden sm:inline">{tCommon('downloads')}</span>
               </div>
-              <div className="h-6 w-px bg-border" />
-              <div className="flex items-center gap-2 min-w-fit">
-                <Eye className="w-5 h-5 text-text-muted" />
+              <div className="hidden sm:block h-5 w-px bg-border" />
+              <div className="flex items-center gap-2">
+                <Eye className="w-4 h-4 lg:w-5 lg:h-5 text-text-muted" />
                 <span className="font-semibold text-text-primary ltr-nums">
                   {formatCompactNumber(skill.views, locale)}
                 </span>
-                <span className="text-text-muted text-sm">{tCommon('views')}</span>
+                <span className="text-text-muted text-sm hidden sm:inline">{tCommon('views')}</span>
               </div>
             </div>
           </div>
@@ -445,6 +502,27 @@ export default async function SkillPage({ params }: SkillPageProps) {
                 />
               </div>
 
+              {/* AI Review Card (Mobile) */}
+              {hasReview && (
+                <div className="lg:hidden bg-surface-elevated rounded-2xl border border-border p-6">
+                  <h3 className="font-semibold text-text-primary mb-4 flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-primary-500" />
+                    {t('review.title')}
+                  </h3>
+                  <div className="space-y-4">
+                    <div className="space-y-3">
+                      <ScoreBar label={t('review.instructionQuality')} score={review.instructionQuality} />
+                      <ScoreBar label={t('review.descriptionPrecision')} score={review.descriptionPrecision} />
+                      <ScoreBar label={t('review.usefulness')} score={review.usefulness} />
+                      <ScoreBar label={t('review.technicalSoundness')} score={review.technicalSoundness} />
+                    </div>
+                    {parsedNotes?.rationale && (
+                      <p className="text-sm text-text-secondary pt-3 border-t border-border" dir="auto">{parsedNotes.rationale}</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* README Section */}
               <div className="bg-surface-elevated rounded-2xl border border-border overflow-hidden">
                 <div className="px-6 py-4 border-b border-border bg-surface-subtle/50">
@@ -455,58 +533,87 @@ export default async function SkillPage({ params }: SkillPageProps) {
                 </div>
                 <div className="p-6">
                   <div className="prose prose-slate dark:prose-invert max-w-none" dir="auto">
-                    <pre className="whitespace-pre-wrap text-sm leading-relaxed bg-surface-subtle rounded-xl p-4 overflow-x-auto text-start border border-border">
+                    <pre className="whitespace-pre-wrap break-words text-sm leading-relaxed bg-surface-subtle rounded-xl p-4 overflow-x-auto text-start border border-border">
                       <code>{skill.longDescription}</code>
                     </pre>
                   </div>
                 </div>
               </div>
 
-              {/* Source Links (Mobile) */}
-              <div className="lg:hidden bg-surface-elevated rounded-2xl border border-border p-6">
-                <h3 className="font-semibold text-text-primary mb-4">
-                  {isRTL ? 'لینک‌ها' : 'Links'}
-                </h3>
-                <div className="space-y-3">
-                  <a
-                    href={skill.repository}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-between p-3 rounded-xl bg-surface-subtle hover:bg-surface-muted transition-colors group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <Github className="w-5 h-5 text-text-muted" />
-                      <div>
-                        <div className="font-medium text-text-primary">{t('meta.repository')}</div>
-                        <div className="text-sm text-text-muted">{skill.author}/{skill.repo}</div>
-                      </div>
-                    </div>
-                    <ExternalLink className="w-4 h-4 text-text-muted group-hover:text-primary-600 transition-colors" />
-                  </a>
-                  {skill.homepage && (
-                    <a
-                      href={skill.homepage}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-between p-3 rounded-xl bg-surface-subtle hover:bg-surface-muted transition-colors group"
-                    >
-                      <div className="flex items-center gap-3">
-                        <ExternalLink className="w-5 h-5 text-text-muted" />
-                        <div>
-                          <div className="font-medium text-text-primary">{t('meta.homepage')}</div>
-                          <div className="text-sm text-text-muted truncate max-w-[200px]">{skill.homepage}</div>
-                        </div>
-                      </div>
-                      <ExternalLink className="w-4 h-4 text-text-muted group-hover:text-primary-600 transition-colors" />
-                    </a>
-                  )}
-                </div>
-              </div>
             </div>
 
             {/* Right: Sidebar (Desktop) */}
             <div className="hidden lg:block space-y-6">
               <div className="sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto space-y-6 scrollbar-thin">
+                {/* AI Review Card (Desktop) — above Install for visibility */}
+                {hasReview && (
+                  <div className="bg-surface-elevated rounded-2xl border border-border p-6">
+                    <h3 className="font-semibold text-text-primary mb-4 flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-primary-500" />
+                      {t('review.title')}
+                    </h3>
+
+                    {/* Overall Score */}
+                    <div className="text-center mb-4">
+                      <div className={`text-4xl font-bold ${review.aiScore! >= 75 ? 'text-success' : review.aiScore! >= 50 ? 'text-gold' : 'text-text-primary'}`}>
+                        {review.aiScore}
+                      </div>
+                      <div className="text-sm text-text-muted">{t('review.outOf100')}</div>
+                    </div>
+
+                    {/* 4-axis score bars */}
+                    <div className="space-y-3">
+                      <ScoreBar label={t('review.instructionQuality')} score={review.instructionQuality} />
+                      <ScoreBar label={t('review.descriptionPrecision')} score={review.descriptionPrecision} />
+                      <ScoreBar label={t('review.usefulness')} score={review.usefulness} />
+                      <ScoreBar label={t('review.technicalSoundness')} score={review.technicalSoundness} />
+                    </div>
+
+                    {/* Rationale */}
+                    {parsedNotes?.rationale && (
+                      <div className="mt-4 pt-4 border-t border-border">
+                        <p className="text-sm text-text-secondary" dir="auto">{parsedNotes.rationale}</p>
+                      </div>
+                    )}
+
+                    {/* Tags: Audience, Maturity, Complexity, Use Cases */}
+                    {(parsedNotes?.maturity || parsedNotes?.complexity || (parsedNotes?.audience && parsedNotes.audience.length > 0) || (parsedNotes?.useCases && parsedNotes.useCases.length > 0)) && (
+                      <div className="mt-4 pt-4 border-t border-border">
+                        <div className="flex flex-wrap gap-1.5">
+                          {parsedNotes?.maturity && (
+                            <span className="px-2 py-0.5 text-xs rounded bg-surface-subtle text-text-muted border border-border">
+                              {parsedNotes.maturity}
+                            </span>
+                          )}
+                          {parsedNotes?.complexity && (
+                            <span className="px-2 py-0.5 text-xs rounded bg-surface-subtle text-text-muted border border-border">
+                              {parsedNotes.complexity}
+                            </span>
+                          )}
+                          {parsedNotes?.audience?.map((a: string) => (
+                            <span key={a} className="px-2 py-0.5 text-xs rounded bg-primary-50 text-primary-700 dark:bg-primary-900/20 dark:text-primary-400">
+                              {a.trim()}
+                            </span>
+                          ))}
+                          {parsedNotes?.useCases?.map((uc: string) => (
+                            <span key={uc} className="px-2 py-0.5 text-xs rounded bg-success/10 text-success">
+                              {uc.trim()}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Reviewer info */}
+                    <div className="mt-3 text-xs text-text-muted">
+                      {t('review.reviewedBy', { reviewer: review.reviewer || 'AI' })}
+                      {review.reviewedAt && (
+                        <> {t('review.reviewedOn', { date: new Date(review.reviewedAt).toLocaleDateString(locale === 'fa' ? 'fa-IR' : 'en-US') })}</>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {/* Install Section */}
                 <InstallSection
                   skillId={skill.id}
@@ -538,25 +645,6 @@ export default async function SkillPage({ params }: SkillPageProps) {
                     folderNoteSuffix: t('install.folderNoteSuffix') || '" will be created',
                   }}
                 />
-
-                {/* Links Card (Desktop) */}
-                {skill.homepage && (
-                  <div className="bg-surface-elevated rounded-2xl border border-border p-6">
-                    <h3 className="font-semibold text-text-primary mb-4">
-                      {isRTL ? 'لینک‌ها' : 'Links'}
-                    </h3>
-                    <a
-                      href={skill.homepage}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-sm text-text-secondary hover:text-primary-600 transition-colors py-2"
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                      <span className="flex-1">{t('meta.homepage')}</span>
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
-                  </div>
-                )}
               </div>
             </div>
           </div>

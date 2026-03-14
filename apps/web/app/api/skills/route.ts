@@ -97,8 +97,14 @@ export async function GET(request: NextRequest) {
       const useMeilisearch = await isMeilisearchHealthy();
 
       if (useMeilisearch) {
-        // Use Meilisearch for full-text search with relevance ranking
-        // Note: category filter not supported in Meilisearch, handled in PostgreSQL fallback
+        // For 'recommended' sort, fetch more results from Meilisearch (by relevance),
+        // then post-process to boost ai-reviewed skills to the top
+        const isRecommended = sort === 'recommended';
+        const meiliSort = isRecommended ? undefined : sort as 'stars' | 'downloads' | 'rating' | 'recent';
+        // Fetch extra results for recommended so we have enough after re-ranking
+        const meiliLimit = isRecommended ? Math.min(limit * 3, 60) : limit;
+        const meiliOffset = isRecommended ? 0 : offset;
+
         const meiliResult = await meilisearchSearch({
           query,
           filters: {
@@ -106,13 +112,13 @@ export async function GET(request: NextRequest) {
             minStars: minStars > 0 ? minStars : undefined,
             verified: verified ? true : undefined,
           },
-          sort: sort as 'stars' | 'downloads' | 'rating' | 'recent',
-          limit,
-          offset,
+          sort: meiliSort,
+          limit: meiliLimit,
+          offset: meiliOffset,
         });
 
         if (meiliResult) {
-          const skills = meiliResult.hits.map((hit) => ({
+          let skills = meiliResult.hits.map((hit) => ({
             id: restoreIdFromMeili(hit.id),
             name: hit.name,
             description: hit.description,
@@ -121,12 +127,30 @@ export async function GET(request: NextRequest) {
             githubStars: hit.githubStars,
             downloadCount: hit.downloadCount,
             securityScore: hit.securityScore,
-            securityStatus: null, // Not available in Meilisearch yet
+            securityStatus: hit.securityStatus || null,
             rating: hit.rating,
             ratingCount: null, // Not available in Meilisearch yet
             isVerified: hit.isVerified,
             compatibility: { platforms: hit.platforms },
+            reviewStatus: hit.reviewStatus || null,
+            aiScore: hit.aiScore || null,
           }));
+
+          // For recommended sort: boost ai-reviewed skills with score >= 75 to top,
+          // preserving Meilisearch relevance order within each group
+          if (isRecommended) {
+            const reviewed = skills.filter(s =>
+              s.aiScore && s.aiScore >= 75 &&
+              (s.reviewStatus === 'ai-reviewed' || s.reviewStatus === 'verified')
+            );
+            const rest = skills.filter(s =>
+              !(s.aiScore && s.aiScore >= 75 &&
+                (s.reviewStatus === 'ai-reviewed' || s.reviewStatus === 'verified'))
+            );
+            // Sort reviewed by score desc (relevance already handled by position)
+            reviewed.sort((a, b) => (b.aiScore || 0) - (a.aiScore || 0));
+            skills = [...reviewed, ...rest].slice(offset, offset + limit);
+          }
 
           // Cache the result (5 minutes TTL)
           await setCache(
@@ -159,12 +183,14 @@ export async function GET(request: NextRequest) {
 
     // Fall back to PostgreSQL search
     // Map sort parameter to database column
-    const sortByMap: Record<string, 'stars' | 'downloads' | 'rating' | 'updated' | 'lastDownloaded'> = {
+    const sortByMap: Record<string, 'stars' | 'downloads' | 'rating' | 'updated' | 'lastDownloaded' | 'aiScore' | 'recommended'> = {
       stars: 'stars',
       downloads: 'downloads',
       rating: 'rating',
       recent: 'updated',
       lastDownloaded: 'lastDownloaded',
+      aiScore: 'aiScore',
+      recommended: 'recommended',
       security: 'stars', // Use stars as fallback
     };
     const sortBy = sortByMap[sort] || 'downloads';
@@ -209,6 +235,8 @@ export async function GET(request: NextRequest) {
       isVerified: skill.isVerified,
       compatibility: skill.compatibility,
       updatedAt: skill.updatedAt,
+      reviewStatus: skill.reviewStatus,
+      aiScore: skill.latestAiScore,
     }));
 
     // Cache the result (5 minutes TTL)

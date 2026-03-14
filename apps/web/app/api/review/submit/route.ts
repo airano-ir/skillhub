@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
       const newStatus = r.set_verified ? 'verified' : 'ai-reviewed';
       if (r.set_verified) verifiedCount++;
 
-      await skillReviewQueries.updateSkillReviewStatus(db, r.skill_id, newStatus);
+      await skillReviewQueries.updateSkillReviewStatus(db, r.skill_id, newStatus, r.ai_score, new Date());
     }
 
     return NextResponse.json(

@@ -18,7 +18,7 @@ export async function search(query: string, options: SearchOptions): Promise<voi
   try {
     const limit = parseInt(options.limit || '10');
     const page = parseInt(options.page || '1');
-    const sort = options.sort || 'downloads';
+    const sort = options.sort || 'recommended';
     const result = await searchSkills(query, {
       platform: options.platform,
       limit,
@@ -34,7 +34,7 @@ export async function search(query: string, options: SearchOptions): Promise<voi
       return;
     }
 
-    const sortLabel = { downloads: 'downloads', stars: 'GitHub stars', rating: 'rating', recent: 'recently updated' }[sort] || sort;
+    const sortLabel = { recommended: 'recommended', downloads: 'downloads', stars: 'GitHub stars', rating: 'rating', recent: 'recently updated', aiScore: 'AI score' }[sort] || sort;
     console.log(chalk.bold(`Found ${result.pagination.total} skills (sorted by ${sortLabel}):\n`));
 
     // Print results as a table
@@ -57,9 +57,14 @@ export async function search(query: string, options: SearchOptions): Promise<voi
         `${num} ${verified} ${chalk.cyan(skill.id.padEnd(38))} ${security}`
       );
 
-      // Second line: downloads, stars, description
+      // Second line: AI score (if reviewed) + downloads + stars + description
+      const aiScore = skill.aiScore;
+      const hasAiScore = aiScore != null && aiScore > 0 && skill.reviewStatus && skill.reviewStatus !== 'unreviewed' && skill.reviewStatus !== 'auto-scored';
+      const aiPrefix = hasAiScore
+        ? `${chalk.magenta('AI')} ${(aiScore >= 75 ? chalk.green : aiScore >= 50 ? chalk.yellow : chalk.dim)(String(aiScore))}  `
+        : '';
       console.log(
-        `     ⬇ ${formatNumber(skill.downloadCount).padStart(6)}  ⭐ ${formatNumber(skill.githubStars).padStart(6)}  ${chalk.dim(skill.description.slice(0, 55))}${skill.description.length > 55 ? '...' : ''}`
+        `     ${aiPrefix}⬇ ${formatNumber(skill.downloadCount).padStart(6)}  ⭐ ${formatNumber(skill.githubStars).padStart(6)}  ${chalk.dim(skill.description.slice(0, hasAiScore ? 45 : 55))}${skill.description.length > (hasAiScore ? 45 : 55) ? '...' : ''}`
       );
 
       // Third line: Rating (only if ratingCount >= 3)
@@ -83,8 +88,8 @@ export async function search(query: string, options: SearchOptions): Promise<voi
       );
     }
 
-    if (sort === 'downloads') {
-      console.log(chalk.dim(`Sort options: ${chalk.white('--sort stars|rating|recent')}`));
+    if (sort === 'recommended') {
+      console.log(chalk.dim(`Sort options: ${chalk.white('--sort aiScore|downloads|stars|rating|recent')}`));
     }
   } catch (error) {
     spinner.fail('Search failed');

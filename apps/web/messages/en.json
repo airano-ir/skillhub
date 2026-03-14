@@ -50,7 +50,7 @@
       "skills": "Curated Skills",
       "downloads": "Downloads",
       "contributors": "Contributors",
-      "categories": "Categories",
+      "reviewed": "AI Reviewed",
       "curationNote": "Every skill is deduplicated and quality-filtered from {totalIndexed}+ indexed repositories"
     },
     "featured": {
@@ -87,11 +87,13 @@
       "allCategories": "All Categories",
       "sort": "Sort by",
       "sortOptions": {
+        "recommended": "Recommended",
         "lastDownloaded": "Recently downloaded",
         "stars": "Most stars",
         "downloads": "Most downloads",
         "recent": "Recently updated",
-        "rating": "Highest rated"
+        "rating": "Highest rated",
+        "aiScore": "AI Review Score"
       },
       "minStars": "Min stars",
       "minSecurity": "Min security score",
@@ -178,6 +180,21 @@
       "homepage": "Homepage",
       "lastUpdate": "Last updated",
       "createdAt": "Created"
+    },
+    "review": {
+      "title": "AI Review",
+      "aiScore": "AI Score",
+      "outOf100": "out of 100",
+      "instructionQuality": "Instruction Quality",
+      "descriptionPrecision": "Description Precision",
+      "usefulness": "Usefulness",
+      "technicalSoundness": "Technical Soundness",
+      "audience": "Audience",
+      "maturity": "Maturity",
+      "complexity": "Complexity",
+      "useCases": "Use Cases",
+      "reviewedBy": "Reviewed by {reviewer}",
+      "reviewedOn": "on {date}"
     }
   },
   "footer": {
@@ -202,7 +219,8 @@
       "privacyPolicy": "Privacy Policy",
       "termsOfService": "Terms of Service",
       "attribution": "Attribution",
-      "manageSkills": "Manage Skills"
+      "manageSkills": "Manage Skills",
+      "reviewedSkills": "Reviewed Skills"
     },
     "sourceCode": "Source Code",
     "copyright": "© {year} SkillHub. Open source under MIT license."
@@ -537,6 +555,21 @@
   "featured": {
     "title": "Featured Skills",
     "subtitle": "Top skills by popularity and community engagement"
+  },
+  "reviewed": {
+    "title": "AI Reviewed Skills",
+    "subtitle": "Skills evaluated and scored by AI for quality and usefulness",
+    "explanation": "Each skill has been evaluated by an AI reviewer on a structured rubric: instruction quality, usefulness, technical soundness, and description precision. Scores range from 0 to 100 — skills scoring 75+ (green badge) are high quality, 50–74 (gold badge) are solid with targeted value.",
+    "sortBy": "Sort by",
+    "sortOptions": {
+      "reviewDate": "Recently reviewed",
+      "aiScore": "Highest score"
+    },
+    "scoreFilter": "Score",
+    "scoreOptions": {
+      "above50": "50+ only",
+      "all": "All scores"
+    }
   },
   "owner": {
     "title": "@{username}'s Skills",

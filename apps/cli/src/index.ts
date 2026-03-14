@@ -46,7 +46,7 @@ program
   .command('search <query>')
   .description('Search for skills in the registry')
   .option('-p, --platform <platform>', 'Filter by platform')
-  .option('-s, --sort <sort>', 'Sort by: downloads, stars, rating, recent', 'downloads')
+  .option('-s, --sort <sort>', 'Sort by: recommended, aiScore, downloads, stars, rating, recent', 'recommended')
   .option('-l, --limit <number>', 'Number of results', '10')
   .option('--page <number>', 'Page number', '1')
   .action(async (query: string, options) => {

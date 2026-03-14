@@ -86,6 +86,8 @@ export const skills = pgTable(
     canonicalSkillId: text('canonical_skill_id'), // points to the "original" if this is a duplicate
     repoSkillCount: integer('repo_skill_count'), // cached count of skills in same repo
     reviewStatus: text('review_status').default('unreviewed'), // unreviewed → auto-scored → ai-reviewed → verified (or needs-re-review)
+    latestAiScore: integer('latest_ai_score'), // Denormalized from skill_reviews for efficient sorting
+    latestReviewDate: timestamp('latest_review_date', { withTimezone: true }), // When last AI-reviewed
 
     // Content (cached)
     contentHash: text('content_hash'),
@@ -129,6 +131,7 @@ export const skills = pgTable(
     duplicateIdx: index('idx_skills_duplicate').on(table.isDuplicate),
     contentHashIdx: index('idx_skills_content_hash').on(table.contentHash),
     staleIdx: index('idx_skills_stale').on(table.isStale),
+    aiScoreIdx: index('idx_skills_ai_score').on(table.latestAiScore),
   })
 );
 

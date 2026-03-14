@@ -568,6 +568,11 @@ ALTER TABLE skills ADD COLUMN IF NOT EXISTS stale_since TIMESTAMP WITH TIME ZONE
 ALTER TABLE skills ADD COLUMN IF NOT EXISTS stale_check_count INTEGER DEFAULT 0;
 CREATE INDEX IF NOT EXISTS idx_skills_stale ON skills(is_stale) WHERE is_stale = TRUE;
 
+-- Denormalized AI review scores (March 2026)
+ALTER TABLE skills ADD COLUMN IF NOT EXISTS latest_ai_score INTEGER;
+ALTER TABLE skills ADD COLUMN IF NOT EXISTS latest_review_date TIMESTAMPTZ;
+CREATE INDEX IF NOT EXISTS idx_skills_ai_score ON skills(latest_ai_score) WHERE latest_ai_score IS NOT NULL;
+
 -- Grant permissions
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO postgres;
 GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO postgres;

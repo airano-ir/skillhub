@@ -122,6 +122,9 @@ export default async function CliDocsPage({
                     <code className="block text-sm font-mono">
                       <span className="text-text-muted">$</span> npx skillhub search &quot;code review&quot; --sort stars --limit 5
                     </code>
+                    <code className="block text-sm font-mono text-text-muted mt-1">
+                      # Sort options: recommended (default), aiScore, downloads, stars, rating, recent
+                    </code>
                   </div>
                   {/* Update all */}
                   <div>

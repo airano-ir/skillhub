@@ -50,7 +50,7 @@
       "skills": "مهارت برگزیده",
       "downloads": "دانلود",
       "contributors": "مشارکت‌کننده",
-      "categories": "دسته‌بندی",
+      "reviewed": "بررسی‌شده با هوش مصنوعی",
       "curationNote": "هر مهارت از میان {totalIndexed}+ مخزن ایندکس‌شده، حذف تکراری و فیلتر کیفیت شده است"
     },
     "featured": {
@@ -87,11 +87,13 @@
       "allCategories": "همه دسته‌بندی‌ها",
       "sort": "مرتب‌سازی",
       "sortOptions": {
+        "recommended": "پیشنهادی",
         "lastDownloaded": "اخیراً دانلود شده",
         "stars": "بیشترین ستاره",
         "downloads": "بیشترین دانلود",
         "recent": "جدید‌ترین",
-        "rating": "بالاترین امتیاز"
+        "rating": "بالاترین امتیاز",
+        "aiScore": "امتیاز بررسی هوش مصنوعی"
       },
       "minStars": "حداقل ستاره",
       "minSecurity": "حداقل امتیاز امنیتی",
@@ -178,6 +180,21 @@
       "homepage": "وب‌سایت",
       "lastUpdate": "آخرین به‌روزرسانی",
       "createdAt": "تاریخ ایجاد"
+    },
+    "review": {
+      "title": "بررسی هوش مصنوعی",
+      "aiScore": "امتیاز AI",
+      "outOf100": "از ۱۰۰",
+      "instructionQuality": "کیفیت دستورالعمل",
+      "descriptionPrecision": "دقت توضیحات",
+      "usefulness": "کاربردی بودن",
+      "technicalSoundness": "صحت فنی",
+      "audience": "مخاطبان",
+      "maturity": "بلوغ",
+      "complexity": "پیچیدگی",
+      "useCases": "موارد استفاده",
+      "reviewedBy": "بررسی توسط {reviewer}",
+      "reviewedOn": "در {date}"
     }
   },
   "footer": {
@@ -202,7 +219,8 @@
       "privacyPolicy": "حریم خصوصی",
       "termsOfService": "شرایط استفاده",
       "attribution": "تقدیر و تشکر",
-      "manageSkills": "مدیریت مهارت‌ها"
+      "manageSkills": "مدیریت مهارت‌ها",
+      "reviewedSkills": "مهارت‌های بررسی‌شده"
     },
     "sourceCode": "کد منبع",
     "copyright": "© {year} SkillHub. کد متن‌باز تحت مجوز MIT."
@@ -537,6 +555,21 @@
   "featured": {
     "title": "مهارت‌های ویژه",
     "subtitle": "برترین مهارت‌ها بر اساس محبوبیت و مشارکت جامعه"
+  },
+  "reviewed": {
+    "title": "مهارت‌های بررسی‌شده توسط هوش مصنوعی",
+    "subtitle": "مهارت‌هایی که توسط هوش مصنوعی ارزیابی و امتیازدهی شده‌اند",
+    "explanation": "هر مهارت در این فهرست توسط یک ارزیاب هوش مصنوعی بر اساس معیارهای ساختاریافته شامل کیفیت دستورالعمل، کاربرد، درستی فنی و دقت توضیحات بررسی شده است. امتیازها از ۰ تا ۱۰۰ هستند — مهارت‌های با امتیاز ۷۵+ (نشان سبز) باکیفیت بالا، ۵۰ تا ۷۴ (نشان طلایی) مستحکم با ارزش هدفمند هستند.",
+    "sortBy": "مرتب‌سازی",
+    "sortOptions": {
+      "reviewDate": "آخرین بررسی‌شده",
+      "aiScore": "بالاترین امتیاز"
+    },
+    "scoreFilter": "امتیاز",
+    "scoreOptions": {
+      "above50": "فقط ۵۰+",
+      "all": "همه امتیازها"
+    }
   },
   "owner": {
     "title": "مهارت‌های @{username}",

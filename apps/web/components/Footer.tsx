@@ -16,6 +16,7 @@ export function Footer() {
       { name: t('links.categories'), href: `/${locale}/categories` },
       { name: t('links.featured'), href: `/${locale}/featured` },
       { name: t('links.newSkills'), href: `/${locale}/new` },
+      { name: t('links.reviewedSkills'), href: `/${locale}/reviewed` },
     ],
     resources: [
       { name: t('links.documentation'), href: `/${locale}/docs` },

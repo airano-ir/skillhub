@@ -92,6 +92,8 @@ async function initializeIndex(): Promise<void> {
       'isFeatured',
       'securityScore',
       'githubStars',
+      'reviewStatus',
+      'aiScore',
     ]);
 
     // Configure sortable attributes
@@ -100,6 +102,7 @@ async function initializeIndex(): Promise<void> {
       'downloadCount',
       'rating',
       'indexedAt',
+      'aiScore',
     ]);
 
     // Configure ranking rules
@@ -144,6 +147,8 @@ export async function syncSkillToMeilisearch(skill: {
   securityStatus?: 'pass' | 'warning' | 'fail' | null;
   isFeatured?: boolean | null;
   isVerified?: boolean | null;
+  reviewStatus?: string | null;
+  latestAiScore?: number | null;
   indexedAt?: Date | null;
 }): Promise<boolean> {
   const meili = getMeilisearchClient();
@@ -171,6 +176,8 @@ export async function syncSkillToMeilisearch(skill: {
       securityStatus: skill.securityStatus || null,
       isFeatured: skill.isFeatured || false,
       isVerified: skill.isVerified || false,
+      reviewStatus: skill.reviewStatus || null,
+      aiScore: skill.latestAiScore || 0,
       indexedAt: skill.indexedAt?.toISOString() || new Date().toISOString(),
     };
 
@@ -254,6 +261,8 @@ export async function syncAllSkillsToMeilisearch(
     securityStatus?: 'pass' | 'warning' | 'fail' | null;
     isFeatured?: boolean | null;
     isVerified?: boolean | null;
+    reviewStatus?: string | null;
+    latestAiScore?: number | null;
     indexedAt?: Date | null;
   }>
 ): Promise<{ success: number; failed: number }> {
@@ -284,6 +293,8 @@ export async function syncAllSkillsToMeilisearch(
     securityStatus: skill.securityStatus || null,
     isFeatured: skill.isFeatured || false,
     isVerified: skill.isVerified || false,
+    reviewStatus: skill.reviewStatus || null,
+    aiScore: skill.latestAiScore || 0,
     indexedAt: skill.indexedAt?.toISOString() || new Date().toISOString(),
   }));
 

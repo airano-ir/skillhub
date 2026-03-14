@@ -58,13 +58,15 @@ export function BrowseFilters({
 
   // Get current values from URL
   const currentCategory = searchParams.get('category') || '';
-  const currentSort = searchParams.get('sort') || 'lastDownloaded';
+  const hasQuery = !!searchParams.get('q');
+  const defaultSort = hasQuery ? 'recommended' : 'lastDownloaded';
+  const currentSort = searchParams.get('sort') || defaultSort;
   const currentFormat = searchParams.get('format') || '';
 
   // Count active filters for mobile badge
   const activeFilterCount = [
     currentCategory ? 1 : 0,
-    currentSort !== 'lastDownloaded' ? 1 : 0,
+    currentSort !== defaultSort ? 1 : 0,
     currentFormat ? 1 : 0,
   ].reduce((a, b) => a + b, 0);
 
@@ -98,7 +100,7 @@ export function BrowseFilters({
 
   // Handle sort change
   const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    updateParams({ sort: e.target.value === 'lastDownloaded' ? null : e.target.value });
+    updateParams({ sort: e.target.value === defaultSort ? null : e.target.value });
   };
 
   // Handle format change
@@ -272,9 +274,9 @@ export function SearchBar({ placeholder, defaultValue = '' }: SearchBarProps) {
 
     if (searchQuery) {
       params.set('q', searchQuery);
-      // Default to sorting by stars when searching
-      if (!params.get('sort')) {
-        params.set('sort', 'stars');
+      // Remove sort param so server-side defaults to 'recommended' for searches
+      if (!params.get('sort') || params.get('sort') === 'lastDownloaded') {
+        params.delete('sort');
       }
     } else {
       params.delete('q');
@@ -361,7 +363,8 @@ export function ActiveFilters({
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
 
-  const hasFilters = query || categoryId || (sortBy && sortBy !== 'lastDownloaded');
+  const defaultSort = query ? 'recommended' : 'lastDownloaded';
+  const hasFilters = query || categoryId || (sortBy && sortBy !== defaultSort);
 
   if (!hasFilters) return null;
 
@@ -410,7 +413,7 @@ export function ActiveFilters({
         </span>
       )}
 
-      {sortBy && sortBy !== 'lastDownloaded' && sortName && (
+      {sortBy && sortBy !== defaultSort && sortName && (
         <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface-subtle text-text-secondary text-sm rounded-full">
           <SlidersHorizontal className="w-3 h-3" />
           <span>{sortName}</span>

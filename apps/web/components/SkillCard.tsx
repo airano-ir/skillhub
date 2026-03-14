@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Star, Download, Shield, CheckCircle, Clock, RefreshCw } from 'lucide-react';
+import { Star, Download, Shield, CheckCircle, Clock, RefreshCw, Sparkles } from 'lucide-react';
 import { formatCompactNumber } from '@/lib/format-number';
 
 const FORMAT_BADGE_LABELS: Record<string, string> = {
@@ -21,6 +21,9 @@ interface SkillCardProps {
     ratingCount: number | null;
     securityStatus: string | null;
     isVerified: boolean | null;
+    reviewStatus?: string | null;
+    aiScore?: number | null;
+    latestAiScore?: number | null;
     sourceFormat?: string | null;
     createdAt?: Date | string | null;
     updatedAt?: Date | string | null;
@@ -52,6 +55,19 @@ export function SkillCard({ skill, locale, showTimeBadge, formatTimeAgo }: Skill
   };
 
   const showRating = (skill.ratingCount ?? 0) >= 3;
+
+  // AI review score badge (only for reviewed skills with score >= 50)
+  const getAiScoreBadge = () => {
+    const rs = skill.reviewStatus;
+    if (!rs || rs === 'unreviewed' || rs === 'auto-scored') return null;
+    const score = skill.aiScore ?? skill.latestAiScore;
+    if (!score || score < 50) return null;
+    const color = score >= 75
+      ? 'text-success bg-success/10 border-success/20'
+      : 'text-gold bg-gold/10 border-gold/20';
+    return { score, color };
+  };
+  const aiScoreBadge = getAiScoreBadge();
 
   return (
     <Link
@@ -101,8 +117,14 @@ export function SkillCard({ skill, locale, showTimeBadge, formatTimeAgo }: Skill
         {skill.description}
       </p>
 
-      {/* Metadata Row: Stars + Downloads + Rating */}
+      {/* Metadata Row: AI Score + Stars + Downloads + Rating */}
       <div className="flex flex-wrap items-center gap-4 text-sm text-text-muted mb-2">
+        {aiScoreBadge && (
+          <span className={`flex items-center gap-1 px-1.5 py-0.5 text-xs font-medium rounded border ${aiScoreBadge.color}`}>
+            <Sparkles className="w-3 h-3" />
+            <span className="ltr-nums">{aiScoreBadge.score}</span>
+          </span>
+        )}
         <span className="flex items-center gap-1">
           <Star className="w-4 h-4" />
           <span className="ltr-nums">{formatCompactNumber(skill.githubStars || 0, locale)}</span>

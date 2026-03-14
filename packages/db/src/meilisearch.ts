@@ -28,6 +28,8 @@ export interface MeiliSkillDocument {
   securityStatus: 'pass' | 'warning' | 'fail' | null;
   isFeatured: boolean;
   isVerified: boolean;
+  reviewStatus: string | null;
+  aiScore: number;
   indexedAt: string;
 }
 
@@ -43,7 +45,7 @@ export interface MeiliSearchOptions {
     verified?: boolean;
     featured?: boolean;
   };
-  sort?: 'stars' | 'downloads' | 'rating' | 'recent';
+  sort?: 'stars' | 'downloads' | 'rating' | 'recent' | 'aiScore';
   limit?: number;
   offset?: number;
 }
@@ -154,6 +156,8 @@ export async function initializeSkillsIndex(): Promise<void> {
       'isFeatured',
       'securityScore',
       'githubStars',
+      'reviewStatus',
+      'aiScore',
     ]);
 
     // Configure sortable attributes
@@ -162,6 +166,7 @@ export async function initializeSkillsIndex(): Promise<void> {
       'downloadCount',
       'rating',
       'indexedAt',
+      'aiScore',
     ]);
 
     // Configure ranking rules (relevance + custom)
@@ -278,6 +283,9 @@ export async function searchSkills(options: MeiliSearchOptions): Promise<MeiliSe
         break;
       case 'recent':
         sort.push('indexedAt:desc');
+        break;
+      case 'aiScore':
+        sort.push('aiScore:desc');
         break;
     }
 
