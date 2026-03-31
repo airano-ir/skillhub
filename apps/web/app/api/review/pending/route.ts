@@ -13,12 +13,16 @@ const db = createDb();
  * Supports owner-capped batches for diversity and hybrid re-review/new-review mixing.
  *
  * Query params:
- *   batch_size   - number of skills to return (default 20, max 50)
- *   offset       - number of skills to skip for pagination (default 0)
- *   min_quality  - minimum quality_score (default 50)
- *   security     - security_status filter (default "pass")
- *   priority     - "re-review" to show needs-re-review first, "re-review-all" to include already ai-reviewed skills
- *   owner_limit  - max skills per github_owner in batch (default 0=unlimited, max 10)
+ *   batch_size      - number of skills to return (default 20, max 50)
+ *   offset          - number of skills to skip for pagination (default 0)
+ *   min_quality     - minimum quality_score (default 50)
+ *   security        - security_status filter (default "pass")
+ *   priority        - "re-review" to show needs-re-review first, "re-review-all" to include already ai-reviewed skills
+ *   owner_limit     - max skills per github_owner in batch (default 0=unlimited, max 10)
+ *   sort_by         - sort order: "quality" (default), "stars", "downloads"
+ *   min_ai_score    - minimum latestAiScore filter (for targeted re-review)
+ *   max_ai_score    - maximum latestAiScore filter (for targeted re-review)
+ *   reviewed_before - ISO date string, only include skills reviewed before this date
  */
 export async function GET(request: NextRequest) {
   // Rate limiting
@@ -52,6 +56,14 @@ export async function GET(request: NextRequest) {
     const currentReviewVersion = Math.max(
       parseInt(searchParams.get('review_version') ?? '0', 10) || 0, 0
     );
+    const sortBy = (['quality', 'stars', 'downloads'] as const).includes(
+      searchParams.get('sort_by') as 'quality' | 'stars' | 'downloads'
+    ) ? (searchParams.get('sort_by') as 'quality' | 'stars' | 'downloads') : 'quality';
+    const minAiScoreParam = searchParams.get('min_ai_score');
+    const minAiScore = minAiScoreParam ? parseInt(minAiScoreParam, 10) : undefined;
+    const maxAiScoreParam = searchParams.get('max_ai_score');
+    const maxAiScore = maxAiScoreParam ? parseInt(maxAiScoreParam, 10) : undefined;
+    const reviewedBefore = searchParams.get('reviewed_before') || undefined;
 
     // Run counts in parallel
     const [totalPending, reReviews] = await Promise.all([
@@ -72,6 +84,10 @@ export async function GET(request: NextRequest) {
         reReviewAll: true,
         ownerLimit,
         currentReviewVersion,
+        sortBy,
+        minAiScore,
+        maxAiScore,
+        reviewedBefore,
       }) as typeof batch;
       batch = [...allBatch].slice(0, batchSize);
     } else {
@@ -86,6 +102,7 @@ export async function GET(request: NextRequest) {
           securityPass,
           priorityReReview: true,
           ownerLimit,
+          sortBy,
         });
         batch = [...reReviewBatch] as typeof batch;
       }
@@ -102,6 +119,7 @@ export async function GET(request: NextRequest) {
           securityPass,
           priorityReReview,
           ownerLimit,
+          sortBy,
         }) as typeof batch;
 
         if (priorityReReview) {

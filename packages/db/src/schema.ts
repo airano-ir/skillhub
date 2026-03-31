@@ -66,6 +66,7 @@ export const skills = pgTable(
     isVerified: boolean('is_verified').default(false),
     isFeatured: boolean('is_featured').default(false),
     isBlocked: boolean('is_blocked').default(false), // Blocked from re-indexing (owner requested removal)
+    isMalicious: boolean('is_malicious').default(false), // Flagged as containing malware/malicious code
     isDeprecated: boolean('is_deprecated').default(false), // Auto-detected from raw_content (DEPRECATED/ARCHIVED markers)
     isStale: boolean('is_stale').default(false), // Skill files no longer accessible on GitHub (confirmed after 3 consecutive 404s)
     staleSince: timestamp('stale_since'), // When staleness was first detected
@@ -431,6 +432,7 @@ export const skillReviews = pgTable(
     contentHashAtReview: text('content_hash_at_review'), // skill hash at time of review
     reviewedAt: timestamp('reviewed_at').defaultNow(),
     reviewVersion: integer('review_version').default(1), // criteria version for recalibration
+    recommendation: text('recommendation'), // 'flag-malicious' | null — reviewer recommendation for admin action
   },
   (table) => ({
     skillIdx: index('idx_reviews_skill').on(table.skillId),

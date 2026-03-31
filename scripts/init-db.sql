@@ -493,15 +493,23 @@ ALTER TABLE skills ADD COLUMN IF NOT EXISTS is_deprecated BOOLEAN DEFAULT FALSE;
 
 -- Safe pre-filter function for raw_content (handles invalid UTF-8 gracefully)
 -- Used by review pipeline queries (getPending, countPending, countReReviews)
+-- NOTE: EXCEPTION handler returns TRUE (benefit of the doubt) — CJK skills with
+-- encoding edge cases should not be silently excluded from the review pipeline.
+-- Genuine content issues will be caught during the actual review.
 CREATE OR REPLACE FUNCTION raw_content_passes_prefilter(content TEXT) RETURNS BOOLEAN AS $$
 BEGIN
+  -- Length check (octet_length works on bytes, safe for any encoding)
   IF octet_length(content) < 200 THEN RETURN FALSE; END IF;
-  IF position('<!-- generated' in content) > 0 THEN RETURN FALSE; END IF;
-  IF position('/Users/' in LEFT(content, 1000)) > 0 THEN RETURN FALSE; END IF;
-  IF position('C:\Users\' in LEFT(content, 1000)) > 0 THEN RETURN FALSE; END IF;
+  -- Content checks (may fail on encoding edge cases)
+  BEGIN
+    IF position('<!-- generated' in content) > 0 THEN RETURN FALSE; END IF;
+    IF position('/Users/' in LEFT(content, 1000)) > 0 THEN RETURN FALSE; END IF;
+    IF position('C:\Users\' in LEFT(content, 1000)) > 0 THEN RETURN FALSE; END IF;
+  EXCEPTION WHEN OTHERS THEN
+    -- Encoding error in string checks — content is long enough, let it through
+    RETURN TRUE;
+  END;
   RETURN TRUE;
-EXCEPTION WHEN OTHERS THEN
-  RETURN FALSE;
 END;
 $$ LANGUAGE plpgsql IMMUTABLE;
 
@@ -572,6 +580,10 @@ CREATE INDEX IF NOT EXISTS idx_skills_stale ON skills(is_stale) WHERE is_stale =
 ALTER TABLE skills ADD COLUMN IF NOT EXISTS latest_ai_score INTEGER;
 ALTER TABLE skills ADD COLUMN IF NOT EXISTS latest_review_date TIMESTAMPTZ;
 CREATE INDEX IF NOT EXISTS idx_skills_ai_score ON skills(latest_ai_score) WHERE latest_ai_score IS NOT NULL;
+
+-- Malicious skill detection (March 2026)
+ALTER TABLE skills ADD COLUMN IF NOT EXISTS is_malicious BOOLEAN DEFAULT FALSE;
+ALTER TABLE skill_reviews ADD COLUMN IF NOT EXISTS recommendation TEXT;
 
 -- Grant permissions
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO postgres;

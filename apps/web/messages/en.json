@@ -31,6 +31,7 @@
     "browse": "Browse",
     "categories": "Categories",
     "docs": "Docs",
+    "reviewed": "Reviewed",
     "about": "About",
     "github": "GitHub",
     "sourceCode": "Source Code",
@@ -464,7 +465,7 @@
       "platformWindsurf": "Windsurf — Windsurf config",
       "fullDocsLink": "See the full discovery documentation for detailed prompts, search strategies, and advanced configuration.",
       "cmdInstallDesc": "Install a skill (--platform, --project, --force, --no-api)",
-      "cmdSearchDesc": "Search for skills (--platform, --limit, --page, --sort stars|downloads|rating|recent)",
+      "cmdSearchDesc": "Search for skills (--platform, --limit, --page, --sort recommended|aiScore|downloads|stars|rating|recent)",
       "cmdListDesc": "List installed skills (--platform, --project, --all)",
       "cmdUpdateDesc": "Update a skill or use --all to update all",
       "cmdUninstallDesc": "Remove an installed skill (--platform, --project)",
@@ -472,7 +473,7 @@
       "exInstallGlobal": "Install globally:",
       "exInstallProject": "Install in current project:",
       "exSearch": "Search for skills:",
-      "exSearchSort": "Search sorted by stars:",
+      "exSearchSort": "Search sorted by AI review score:",
       "exUpdateAll": "Update all installed skills:",
       "platformsTitle": "Supported Platforms",
       "platformsDesc": "SkillHub CLI supports 5 AI coding platforms:",
@@ -570,6 +571,44 @@
       "above50": "50+ only",
       "all": "All scores"
     }
+  },
+  "malicious": {
+    "warningTitle": "Malware Detected",
+    "warningDescription": "This skill has been flagged as malicious. It contains obfuscated code designed to download and execute harmful payloads. File downloads and installation are blocked.",
+    "installBlocked": "Installation blocked — this skill contains malware",
+    "badge": "Malware"
+  },
+  "reviewStats": {
+    "title": "Review Statistics",
+    "subtitle": "Overview of the AI review pipeline, score distribution, and security status",
+    "pipelineTitle": "Review Pipeline",
+    "pipelineDescription": "Status of skills in the review process",
+    "aiReviewed": "AI Reviewed",
+    "needsReReview": "Needs Re-review",
+    "totalReviews": "Total Review Records",
+    "scoreTitle": "Score Distribution",
+    "scoreDescription": "Distribution of AI review scores across reviewed skills",
+    "scoreHigh": "High Quality (75–100)",
+    "scoreMid": "Solid (50–74)",
+    "scoreLow": "Below Average (0–49)",
+    "securityTitle": "Security Scan",
+    "securityDescription": "Automated security scan results for all skills",
+    "securityPass": "Pass",
+    "securityWarning": "Warning",
+    "securityFail": "Fail",
+    "malwareTitle": "Malware Detection",
+    "malwareDescription": "Skills flagged as containing malicious code",
+    "malwareFlagged": "Flagged as Malware",
+    "malwareViewAll": "View flagged skills",
+    "skills": "skills"
+  },
+  "malwarePage": {
+    "title": "Flagged Malware Skills",
+    "subtitle": "These skills have been identified as containing malicious code. Downloads and installation are blocked for your safety.",
+    "noResults": "No malware-flagged skills found.",
+    "flaggedOn": "Flagged on",
+    "downloadBlocked": "Downloads blocked",
+    "installBlocked": "Installation blocked"
   },
   "owner": {
     "title": "@{username}'s Skills",
@@ -931,6 +970,12 @@
   "banner": {
     "text": "{count}+ Skills for Claude, Copilot & Codex — Install in Seconds",
     "feedback": "Feedback",
+    "dismiss": "Dismiss"
+  },
+  "securityAlert": {
+    "label": "Security Alert:",
+    "text": "Malware found in 5 skills from openclaw/skills.",
+    "link": "Read the advisory",
     "dismiss": "Dismiss"
   },
   "email": {

@@ -31,6 +31,7 @@
     "browse": "مرور",
     "categories": "دسته‌بندی‌ها",
     "docs": "مستندات",
+    "reviewed": "بررسی‌شده",
     "about": "درباره ما",
     "github": "گیت‌هاب",
     "sourceCode": "کد منبع",
@@ -464,7 +465,7 @@
       "platformWindsurf": "Windsurf — پیکربندی Windsurf",
       "fullDocsLink": "مستندات کامل کشف را برای پرامپت‌های دقیق، استراتژی‌های جستجو و پیکربندی پیشرفته ببینید.",
       "cmdInstallDesc": "نصب مهارت (--platform, --project, --force, --no-api)",
-      "cmdSearchDesc": "جستجوی مهارت‌ها (--platform, --limit, --page, --sort stars|downloads|rating|recent)",
+      "cmdSearchDesc": "جستجوی مهارت‌ها (--platform, --limit, --page, --sort recommended|aiScore|downloads|stars|rating|recent)",
       "cmdListDesc": "لیست مهارت‌های نصب‌شده (--platform, --project, --all)",
       "cmdUpdateDesc": "به‌روزرسانی مهارت یا استفاده از --all برای به‌روزرسانی همه",
       "cmdUninstallDesc": "حذف مهارت نصب‌شده (--platform, --project)",
@@ -472,7 +473,7 @@
       "exInstallGlobal": "نصب سراسری:",
       "exInstallProject": "نصب در پروژه فعلی:",
       "exSearch": "جستجوی مهارت‌ها:",
-      "exSearchSort": "جستجو بر اساس ستاره‌ها:",
+      "exSearchSort": "جستجو بر اساس امتیاز بررسی:",
       "exUpdateAll": "به‌روزرسانی همه مهارت‌ها:",
       "platformsTitle": "پلتفرم‌های پشتیبانی‌شده",
       "platformsDesc": "CLI SkillHub از ۵ پلتفرم کدنویسی هوش مصنوعی پشتیبانی می‌کند:",
@@ -570,6 +571,44 @@
       "above50": "فقط ۵۰+",
       "all": "همه امتیازها"
     }
+  },
+  "malicious": {
+    "warningTitle": "بدافزار شناسایی شد",
+    "warningDescription": "این مهارت به عنوان مخرب شناسایی شده است. شامل کد مبهم‌سازی شده برای دانلود و اجرای بارهای مضر است. دانلود فایل و نصب مسدود شده است.",
+    "installBlocked": "نصب مسدود شده — این مهارت حاوی بدافزار است",
+    "badge": "بدافزار"
+  },
+  "reviewStats": {
+    "title": "آمار بررسی‌ها",
+    "subtitle": "نمای کلی از خط لوله بررسی هوش مصنوعی، توزیع امتیاز و وضعیت امنیتی",
+    "pipelineTitle": "خط لوله بررسی",
+    "pipelineDescription": "وضعیت مهارت‌ها در فرآیند بررسی",
+    "aiReviewed": "بررسی‌شده توسط AI",
+    "needsReReview": "نیاز به بررسی مجدد",
+    "totalReviews": "کل رکوردهای بررسی",
+    "scoreTitle": "توزیع امتیاز",
+    "scoreDescription": "توزیع امتیازهای بررسی هوش مصنوعی در مهارت‌های بررسی‌شده",
+    "scoreHigh": "کیفیت بالا (۷۵–۱۰۰)",
+    "scoreMid": "قابل قبول (۵۰–۷۴)",
+    "scoreLow": "زیر متوسط (۰–۴۹)",
+    "securityTitle": "اسکن امنیتی",
+    "securityDescription": "نتایج اسکن امنیتی خودکار برای تمام مهارت‌ها",
+    "securityPass": "تایید",
+    "securityWarning": "هشدار",
+    "securityFail": "رد",
+    "malwareTitle": "شناسایی بدافزار",
+    "malwareDescription": "مهارت‌هایی که حاوی کد مخرب شناسایی شده‌اند",
+    "malwareFlagged": "فلگ شده به عنوان بدافزار",
+    "malwareViewAll": "مشاهده مهارت‌های فلگ‌شده",
+    "skills": "مهارت"
+  },
+  "malwarePage": {
+    "title": "مهارت‌های فلگ‌شده به عنوان بدافزار",
+    "subtitle": "این مهارت‌ها حاوی کد مخرب شناسایی شده‌اند. دانلود و نصب آن‌ها برای امنیت شما مسدود شده است.",
+    "noResults": "هیچ مهارت بدافزاردار فلگ‌شده‌ای یافت نشد.",
+    "flaggedOn": "فلگ شده در",
+    "downloadBlocked": "دانلود مسدود شده",
+    "installBlocked": "نصب مسدود شده"
   },
   "owner": {
     "title": "مهارت‌های @{username}",
@@ -931,6 +970,12 @@
   "banner": {
     "text": "{count}+ مهارت برای Claude، Copilot و Codex — در چند ثانیه نصب کنید",
     "feedback": "بازخورد",
+    "dismiss": "بستن"
+  },
+  "securityAlert": {
+    "label": "هشدار امنیتی:",
+    "text": "بدافزار در ۵ مهارت از openclaw/skills شناسایی شد.",
+    "link": "مشاهده اطلاعیه",
     "dismiss": "بستن"
   },
   "email": {

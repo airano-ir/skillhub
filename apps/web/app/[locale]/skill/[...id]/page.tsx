@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { headers } from 'next/headers';
 import {
   Star, Download, Shield, CheckCircle, Copy,
-  ExternalLink, Github, Calendar, User, Tag, ChevronRight, Eye, Sparkles
+  ExternalLink, Github, Calendar, User, Tag, ChevronRight, Eye, Sparkles, XCircle, ShieldAlert
 } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
@@ -113,6 +113,8 @@ export default async function SkillPage({ params }: SkillPageProps) {
     notFound();
   }
 
+  const isMalicious = dbSkill.isMalicious ?? false;
+
   // Track view count with IP-based rate limiting (1 hour cooldown per IP)
   // Get client IP from headers (works with Cloudflare, nginx, etc.)
   const headersList = await headers();
@@ -159,7 +161,13 @@ export default async function SkillPage({ params }: SkillPageProps) {
 
   // Parse review notes for structured display
   const parsedNotes = review?.reviewNotes ? parseReviewNotes(review.reviewNotes) : null;
-  const hasReview = review && review.aiScore && (dbSkill.reviewStatus === 'ai-reviewed' || dbSkill.reviewStatus === 'verified');
+  const hasReview = review && review.aiScore != null && (dbSkill.reviewStatus === 'ai-reviewed' || dbSkill.reviewStatus === 'verified');
+  const isRejected = hasReview && review.aiScore === 0;
+  // Review is outdated only if both hashes are non-empty and differ
+  const reviewOutdated = hasReview
+    && review.contentHashAtReview && review.contentHashAtReview.length > 1
+    && dbSkill.contentHash && dbSkill.contentHash.length > 1
+    && dbSkill.contentHash !== review.contentHashAtReview;
 
   // Content section title based on source format (uses FORMAT_LABELS from skillhub-core)
   const getContentTitle = (format: string) => {
@@ -358,12 +366,23 @@ export default async function SkillPage({ params }: SkillPageProps) {
 
                 {/* Compact AI Review Score */}
                 {hasReview && (
-                  <div className="flex items-center gap-3 px-4 py-3 bg-surface-elevated rounded-xl border border-border">
-                    <Sparkles className={`w-5 h-5 ${review.aiScore! >= 75 ? 'text-success' : 'text-gold'}`} />
-                    <span className={`text-2xl font-bold ltr-nums ${review.aiScore! >= 75 ? 'text-success' : review.aiScore! >= 50 ? 'text-gold' : 'text-text-primary'}`}>
-                      {review.aiScore}
-                    </span>
-                    <span className="text-sm text-text-muted">{t('review.outOf100')}</span>
+                  <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${isRejected ? 'bg-error/5 border-error/20' : 'bg-surface-elevated border-border'}`}>
+                    {isRejected ? (
+                      <>
+                        <XCircle className="w-5 h-5 text-error" />
+                        <span className="text-lg font-bold text-error">
+                          {isRTL ? 'رد شده' : 'Rejected'}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className={`w-5 h-5 ${review.aiScore! >= 75 ? 'text-success' : review.aiScore! >= 50 ? 'text-gold' : 'text-text-muted'}`} />
+                        <span className={`text-2xl font-bold ltr-nums ${review.aiScore! >= 75 ? 'text-success' : review.aiScore! >= 50 ? 'text-gold' : 'text-text-primary'}`}>
+                          {review.aiScore}
+                        </span>
+                        <span className="text-sm text-text-muted">{t('review.outOf100')}</span>
+                      </>
+                    )}
                   </div>
                 )}
               </div>
@@ -391,6 +410,25 @@ export default async function SkillPage({ params }: SkillPageProps) {
                     <ChevronRight className="w-3 h-3" />
                   </Link>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Malicious Skill Warning Banner */}
+        {isMalicious && (
+          <div className="bg-error/10 border-y-2 border-error px-4 py-6">
+            <div className="container-main flex items-start gap-4">
+              <ShieldAlert className="w-8 h-8 text-error flex-shrink-0 mt-0.5" />
+              <div>
+                <h2 className="text-lg font-bold text-error mb-1" dir="auto">
+                  {isRTL ? 'بدافزار شناسایی شد' : 'Malware Detected'}
+                </h2>
+                <p className="text-text-secondary text-sm" dir="auto">
+                  {isRTL
+                    ? 'این مهارت به عنوان مخرب شناسایی شده است. شامل کد مبهم‌سازی شده برای دانلود و اجرای بارهای مضر است. دانلود فایل و نصب مسدود شده است.'
+                    : 'This skill has been flagged as malicious. It contains obfuscated code designed to download and execute harmful payloads. File downloads and installation are blocked.'}
+                </p>
               </div>
             </div>
           </div>
@@ -470,56 +508,87 @@ export default async function SkillPage({ params }: SkillPageProps) {
             <div className="lg:col-span-2 space-y-6">
               {/* Quick Install (Mobile) */}
               <div className="lg:hidden">
-                <InstallSection
-                  skillId={skill.id}
-                  skillName={skill.name}
-                  repositoryUrl={skill.repository}
-                  sourceFormat={skill.sourceFormat}
-                  installCommands={installCommands}
-                  translations={{
-                    title: t('install.title'),
-                    cli: t('install.cli'),
-                    cliGlobal: t('install.cliGlobal') || 'Install globally (user-level):',
-                    cliProject: t('install.cliProject') || 'Install in current project:',
-                    selectFolder: t('install.selectFolder'),
-                    suggestedPath: t('install.suggestedPath'),
-                    copied: t('install.copied'),
-                    downloadZip: t('install.downloadZip') || 'Download ZIP',
-                    copyCommand: t('install.copyCommand') || 'Copy command',
-                    downloading: t('install.downloading') || 'Downloading...',
-                    installing: t('install.installing') || 'Installing...',
-                    installed: t('install.installed') || 'Installed!',
-                    downloadFailed: t('install.downloadFailed') || 'Download failed',
-                    browserNotSupported: t('install.browserNotSupported') || 'Browser not supported',
-                    rateLimitError: t('install.rateLimitError') || 'Rate limit exceeded',
-                    timeoutError: t('install.timeoutError') || 'Request timed out',
-                    notFoundError: t('install.notFoundError') || 'Skill not found',
-                    noFilesError: t('install.noFilesError') || 'No files found',
-                    disclaimer: t('install.disclaimer'),
-                    folderNotePrefix: t('install.folderNotePrefix') || 'A folder named "',
-                    folderNoteSuffix: t('install.folderNoteSuffix') || '" will be created',
-                  }}
-                />
+                {isMalicious ? (
+                  <div className="bg-error/5 border border-error/20 rounded-lg p-4 text-center">
+                    <ShieldAlert className="w-6 h-6 text-error mx-auto mb-2" />
+                    <p className="text-sm text-error font-medium" dir="auto">
+                      {isRTL ? 'نصب مسدود شده — این مهارت حاوی بدافزار است' : 'Installation blocked — this skill contains malware'}
+                    </p>
+                  </div>
+                ) : (
+                  <InstallSection
+                    skillId={skill.id}
+                    skillName={skill.name}
+                    repositoryUrl={skill.repository}
+                    sourceFormat={skill.sourceFormat}
+                    installCommands={installCommands}
+                    translations={{
+                      title: t('install.title'),
+                      cli: t('install.cli'),
+                      cliGlobal: t('install.cliGlobal') || 'Install globally (user-level):',
+                      cliProject: t('install.cliProject') || 'Install in current project:',
+                      selectFolder: t('install.selectFolder'),
+                      suggestedPath: t('install.suggestedPath'),
+                      copied: t('install.copied'),
+                      downloadZip: t('install.downloadZip') || 'Download ZIP',
+                      copyCommand: t('install.copyCommand') || 'Copy command',
+                      downloading: t('install.downloading') || 'Downloading...',
+                      installing: t('install.installing') || 'Installing...',
+                      installed: t('install.installed') || 'Installed!',
+                      downloadFailed: t('install.downloadFailed') || 'Download failed',
+                      browserNotSupported: t('install.browserNotSupported') || 'Browser not supported',
+                      rateLimitError: t('install.rateLimitError') || 'Rate limit exceeded',
+                      timeoutError: t('install.timeoutError') || 'Request timed out',
+                      notFoundError: t('install.notFoundError') || 'Skill not found',
+                      noFilesError: t('install.noFilesError') || 'No files found',
+                      disclaimer: t('install.disclaimer'),
+                      folderNotePrefix: t('install.folderNotePrefix') || 'A folder named "',
+                      folderNoteSuffix: t('install.folderNoteSuffix') || '" will be created',
+                    }}
+                  />
+                )}
               </div>
 
               {/* AI Review Card (Mobile) */}
               {hasReview && (
-                <div className="lg:hidden bg-surface-elevated rounded-2xl border border-border p-6">
+                <div className={`lg:hidden rounded-2xl border p-6 ${isRejected ? 'bg-error/5 border-error/20' : 'bg-surface-elevated border-border'}`}>
                   <h3 className="font-semibold text-text-primary mb-4 flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-primary-500" />
+                    {isRejected ? <XCircle className="w-4 h-4 text-error" /> : <Sparkles className="w-4 h-4 text-primary-500" />}
                     {t('review.title')}
                   </h3>
-                  <div className="space-y-4">
-                    <div className="space-y-3">
-                      <ScoreBar label={t('review.instructionQuality')} score={review.instructionQuality} />
-                      <ScoreBar label={t('review.descriptionPrecision')} score={review.descriptionPrecision} />
-                      <ScoreBar label={t('review.usefulness')} score={review.usefulness} />
-                      <ScoreBar label={t('review.technicalSoundness')} score={review.technicalSoundness} />
+                  {isRejected ? (
+                    <div className="space-y-4">
+                      <div className="text-center">
+                        <div className="text-xl font-bold text-error">
+                          {isRTL ? 'رد شده' : 'Rejected'}
+                        </div>
+                        <div className="text-sm text-text-muted">
+                          {isRTL ? 'این مهارت معیارهای کیفیت را ندارد' : 'Does not meet quality standards'}
+                        </div>
+                      </div>
+                      {parsedNotes?.rationale && (
+                        <p className="text-sm text-text-secondary pt-3 border-t border-error/20" dir="auto">{parsedNotes.rationale}</p>
+                      )}
                     </div>
-                    {parsedNotes?.rationale && (
-                      <p className="text-sm text-text-secondary pt-3 border-t border-border" dir="auto">{parsedNotes.rationale}</p>
-                    )}
-                  </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="space-y-3">
+                        <ScoreBar label={t('review.instructionQuality')} score={review.instructionQuality} />
+                        <ScoreBar label={t('review.descriptionPrecision')} score={review.descriptionPrecision} />
+                        <ScoreBar label={t('review.usefulness')} score={review.usefulness} />
+                        <ScoreBar label={t('review.technicalSoundness')} score={review.technicalSoundness} />
+                      </div>
+                      {parsedNotes?.rationale && (
+                        <p className="text-sm text-text-secondary pt-3 border-t border-border" dir="auto">{parsedNotes.rationale}</p>
+                      )}
+                      {reviewOutdated && (
+                        <p className="text-xs text-warning flex items-center gap-1.5 pt-3 border-t border-border">
+                          <span>⚠</span>
+                          {isRTL ? 'بررسی بر اساس نسخه قبلی' : 'Review based on previous version'}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -547,61 +616,84 @@ export default async function SkillPage({ params }: SkillPageProps) {
               <div className="sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto space-y-6 scrollbar-thin">
                 {/* AI Review Card (Desktop) — above Install for visibility */}
                 {hasReview && (
-                  <div className="bg-surface-elevated rounded-2xl border border-border p-6">
+                  <div className={`rounded-2xl border p-6 ${isRejected ? 'bg-error/5 border-error/20' : 'bg-surface-elevated border-border'}`}>
                     <h3 className="font-semibold text-text-primary mb-4 flex items-center gap-2">
-                      <Sparkles className="w-4 h-4 text-primary-500" />
+                      {isRejected ? <XCircle className="w-4 h-4 text-error" /> : <Sparkles className="w-4 h-4 text-primary-500" />}
                       {t('review.title')}
                     </h3>
 
-                    {/* Overall Score */}
-                    <div className="text-center mb-4">
-                      <div className={`text-4xl font-bold ${review.aiScore! >= 75 ? 'text-success' : review.aiScore! >= 50 ? 'text-gold' : 'text-text-primary'}`}>
-                        {review.aiScore}
-                      </div>
-                      <div className="text-sm text-text-muted">{t('review.outOf100')}</div>
-                    </div>
-
-                    {/* 4-axis score bars */}
-                    <div className="space-y-3">
-                      <ScoreBar label={t('review.instructionQuality')} score={review.instructionQuality} />
-                      <ScoreBar label={t('review.descriptionPrecision')} score={review.descriptionPrecision} />
-                      <ScoreBar label={t('review.usefulness')} score={review.usefulness} />
-                      <ScoreBar label={t('review.technicalSoundness')} score={review.technicalSoundness} />
-                    </div>
-
-                    {/* Rationale */}
-                    {parsedNotes?.rationale && (
-                      <div className="mt-4 pt-4 border-t border-border">
-                        <p className="text-sm text-text-secondary" dir="auto">{parsedNotes.rationale}</p>
-                      </div>
-                    )}
-
-                    {/* Tags: Audience, Maturity, Complexity, Use Cases */}
-                    {(parsedNotes?.maturity || parsedNotes?.complexity || (parsedNotes?.audience && parsedNotes.audience.length > 0) || (parsedNotes?.useCases && parsedNotes.useCases.length > 0)) && (
-                      <div className="mt-4 pt-4 border-t border-border">
-                        <div className="flex flex-wrap gap-1.5">
-                          {parsedNotes?.maturity && (
-                            <span className="px-2 py-0.5 text-xs rounded bg-surface-subtle text-text-muted border border-border">
-                              {parsedNotes.maturity}
-                            </span>
-                          )}
-                          {parsedNotes?.complexity && (
-                            <span className="px-2 py-0.5 text-xs rounded bg-surface-subtle text-text-muted border border-border">
-                              {parsedNotes.complexity}
-                            </span>
-                          )}
-                          {parsedNotes?.audience?.map((a: string) => (
-                            <span key={a} className="px-2 py-0.5 text-xs rounded bg-primary-50 text-primary-700 dark:bg-primary-900/20 dark:text-primary-400">
-                              {a.trim()}
-                            </span>
-                          ))}
-                          {parsedNotes?.useCases?.map((uc: string) => (
-                            <span key={uc} className="px-2 py-0.5 text-xs rounded bg-success/10 text-success">
-                              {uc.trim()}
-                            </span>
-                          ))}
+                    {isRejected ? (
+                      <>
+                        {/* Rejected status */}
+                        <div className="text-center mb-4">
+                          <div className="text-2xl font-bold text-error">
+                            {isRTL ? 'رد شده' : 'Rejected'}
+                          </div>
+                          <div className="text-sm text-text-muted">
+                            {isRTL ? 'این مهارت معیارهای کیفیت را ندارد' : 'Does not meet quality standards'}
+                          </div>
                         </div>
-                      </div>
+
+                        {/* Rationale for rejection */}
+                        {parsedNotes?.rationale && (
+                          <div className="pt-4 border-t border-error/20">
+                            <p className="text-sm text-text-secondary" dir="auto">{parsedNotes.rationale}</p>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        {/* Overall Score */}
+                        <div className="text-center mb-4">
+                          <div className={`text-4xl font-bold ${review.aiScore! >= 75 ? 'text-success' : review.aiScore! >= 50 ? 'text-gold' : 'text-text-primary'}`}>
+                            {review.aiScore}
+                          </div>
+                          <div className="text-sm text-text-muted">{t('review.outOf100')}</div>
+                        </div>
+
+                        {/* 4-axis score bars */}
+                        <div className="space-y-3">
+                          <ScoreBar label={t('review.instructionQuality')} score={review.instructionQuality} />
+                          <ScoreBar label={t('review.descriptionPrecision')} score={review.descriptionPrecision} />
+                          <ScoreBar label={t('review.usefulness')} score={review.usefulness} />
+                          <ScoreBar label={t('review.technicalSoundness')} score={review.technicalSoundness} />
+                        </div>
+
+                        {/* Rationale */}
+                        {parsedNotes?.rationale && (
+                          <div className="mt-4 pt-4 border-t border-border">
+                            <p className="text-sm text-text-secondary" dir="auto">{parsedNotes.rationale}</p>
+                          </div>
+                        )}
+
+                        {/* Tags: Audience, Maturity, Complexity, Use Cases */}
+                        {(parsedNotes?.maturity || parsedNotes?.complexity || (parsedNotes?.audience && parsedNotes.audience.length > 0) || (parsedNotes?.useCases && parsedNotes.useCases.length > 0)) && (
+                          <div className="mt-4 pt-4 border-t border-border">
+                            <div className="flex flex-wrap gap-1.5">
+                              {parsedNotes?.maturity && (
+                                <span className="px-2 py-0.5 text-xs rounded bg-surface-subtle text-text-muted border border-border">
+                                  {parsedNotes.maturity}
+                                </span>
+                              )}
+                              {parsedNotes?.complexity && (
+                                <span className="px-2 py-0.5 text-xs rounded bg-surface-subtle text-text-muted border border-border">
+                                  {parsedNotes.complexity}
+                                </span>
+                              )}
+                              {parsedNotes?.audience?.map((a: string) => (
+                                <span key={a} className="px-2 py-0.5 text-xs rounded bg-primary-50 text-primary-700 dark:bg-primary-900/20 dark:text-primary-400">
+                                  {a.trim()}
+                                </span>
+                              ))}
+                              {parsedNotes?.useCases?.map((uc: string) => (
+                                <span key={uc} className="px-2 py-0.5 text-xs rounded bg-success/10 text-success">
+                                  {uc.trim()}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </>
                     )}
 
                     {/* Reviewer info */}
@@ -611,40 +703,59 @@ export default async function SkillPage({ params }: SkillPageProps) {
                         <> {t('review.reviewedOn', { date: new Date(review.reviewedAt).toLocaleDateString(locale === 'fa' ? 'fa-IR' : 'en-US') })}</>
                       )}
                     </div>
+
+                    {/* Outdated review warning */}
+                    {!isRejected && reviewOutdated && (
+                      <div className="mt-3 pt-3 border-t border-border">
+                        <p className="text-xs text-warning flex items-center gap-1.5">
+                          <span>⚠</span>
+                          {isRTL ? 'بررسی بر اساس نسخه قبلی' : 'Review based on previous version'}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
 
                 {/* Install Section */}
-                <InstallSection
-                  skillId={skill.id}
-                  skillName={skill.name}
-                  repositoryUrl={skill.repository}
-                  sourceFormat={skill.sourceFormat}
-                  installCommands={installCommands}
-                  translations={{
-                    title: t('install.title'),
-                    cli: t('install.cli'),
-                    cliGlobal: t('install.cliGlobal') || 'Install globally (user-level):',
-                    cliProject: t('install.cliProject') || 'Install in current project:',
-                    selectFolder: t('install.selectFolder'),
-                    suggestedPath: t('install.suggestedPath'),
-                    copied: t('install.copied'),
-                    downloadZip: t('install.downloadZip') || 'Download ZIP',
-                    copyCommand: t('install.copyCommand') || 'Copy command',
-                    downloading: t('install.downloading') || 'Downloading...',
-                    installing: t('install.installing') || 'Installing...',
-                    installed: t('install.installed') || 'Installed!',
-                    downloadFailed: t('install.downloadFailed') || 'Download failed',
-                    browserNotSupported: t('install.browserNotSupported') || 'Browser not supported',
-                    rateLimitError: t('install.rateLimitError') || 'Rate limit exceeded',
-                    timeoutError: t('install.timeoutError') || 'Request timed out',
-                    notFoundError: t('install.notFoundError') || 'Skill not found',
-                    noFilesError: t('install.noFilesError') || 'No files found',
-                    disclaimer: t('install.disclaimer'),
-                    folderNotePrefix: t('install.folderNotePrefix') || 'A folder named "',
-                    folderNoteSuffix: t('install.folderNoteSuffix') || '" will be created',
-                  }}
-                />
+                {isMalicious ? (
+                  <div className="bg-error/5 border border-error/20 rounded-lg p-4 text-center">
+                    <ShieldAlert className="w-6 h-6 text-error mx-auto mb-2" />
+                    <p className="text-sm text-error font-medium" dir="auto">
+                      {isRTL ? 'نصب مسدود شده — این مهارت حاوی بدافزار است' : 'Installation blocked — this skill contains malware'}
+                    </p>
+                  </div>
+                ) : (
+                  <InstallSection
+                    skillId={skill.id}
+                    skillName={skill.name}
+                    repositoryUrl={skill.repository}
+                    sourceFormat={skill.sourceFormat}
+                    installCommands={installCommands}
+                    translations={{
+                      title: t('install.title'),
+                      cli: t('install.cli'),
+                      cliGlobal: t('install.cliGlobal') || 'Install globally (user-level):',
+                      cliProject: t('install.cliProject') || 'Install in current project:',
+                      selectFolder: t('install.selectFolder'),
+                      suggestedPath: t('install.suggestedPath'),
+                      copied: t('install.copied'),
+                      downloadZip: t('install.downloadZip') || 'Download ZIP',
+                      copyCommand: t('install.copyCommand') || 'Copy command',
+                      downloading: t('install.downloading') || 'Downloading...',
+                      installing: t('install.installing') || 'Installing...',
+                      installed: t('install.installed') || 'Installed!',
+                      downloadFailed: t('install.downloadFailed') || 'Download failed',
+                      browserNotSupported: t('install.browserNotSupported') || 'Browser not supported',
+                      rateLimitError: t('install.rateLimitError') || 'Rate limit exceeded',
+                      timeoutError: t('install.timeoutError') || 'Request timed out',
+                      notFoundError: t('install.notFoundError') || 'Skill not found',
+                      noFilesError: t('install.noFilesError') || 'No files found',
+                      disclaimer: t('install.disclaimer'),
+                      folderNotePrefix: t('install.folderNotePrefix') || 'A folder named "',
+                      folderNoteSuffix: t('install.folderNoteSuffix') || '" will be created',
+                    }}
+                  />
+                )}
               </div>
             </div>
           </div>

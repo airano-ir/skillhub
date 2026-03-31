@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation';
 import { locales, localeDirection, type Locale } from '@/i18n';
 import { Providers } from '../providers';
 import { Suspense } from 'react';
+import { SecurityAlertBanner } from '@/components/SecurityAlertBanner';
 import { QueryNotification } from '@/components/QueryNotification';
 import { ProgressBar } from '@/components/ProgressBar';
 import '../globals.css';
@@ -68,6 +69,7 @@ export default async function LocaleLayout({
       <body className="min-h-screen bg-surface">
         <Providers>
           <NextIntlClientProvider messages={messages}>
+            <SecurityAlertBanner />
             <Suspense fallback={null}>
               <QueryNotification />
             </Suspense>

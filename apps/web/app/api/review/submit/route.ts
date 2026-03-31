@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server';
-import { createDb, skillReviewQueries } from '@skillhub/db';
+import { createDb, skillQueries, skillReviewQueries } from '@skillhub/db';
 import { requireAdmin } from '@/lib/admin-auth';
 import { withRateLimit, createRateLimitResponse, createRateLimitHeaders } from '@/lib/rate-limit';
 
@@ -24,6 +24,7 @@ interface ReviewItem {
   set_verified?: boolean;
   review_version?: number;
   reviewer?: string;
+  recommendation?: 'flag-malicious' | null;
 }
 
 function validateReviews(body: unknown): { reviews: ReviewItem[] } | { error: string } {
@@ -72,6 +73,12 @@ function validateReviews(body: unknown): { reviews: ReviewItem[] } | { error: st
     if (item.reviewer !== undefined && item.reviewer !== null) {
       if (typeof item.reviewer !== 'string' || item.reviewer.length === 0 || item.reviewer.length > 50) {
         return { error: `reviews[${i}].reviewer must be a non-empty string (max 50 chars)` };
+      }
+    }
+    // Validate recommendation
+    if (item.recommendation !== undefined && item.recommendation !== null) {
+      if (item.recommendation !== 'flag-malicious') {
+        return { error: `reviews[${i}].recommendation must be 'flag-malicious' or null` };
       }
     }
   }
@@ -134,6 +141,7 @@ export async function POST(request: NextRequest) {
       i18nPriority: r.i18n_priority,
       contentHashAtReview: r.content_hash_at_review,
       reviewVersion: r.review_version,
+      recommendation: r.recommendation ?? undefined,
     }));
 
     await skillReviewQueries.createBatch(db, dbReviews);
@@ -147,10 +155,20 @@ export async function POST(request: NextRequest) {
       await skillReviewQueries.updateSkillReviewStatus(db, r.skill_id, newStatus, r.ai_score, new Date());
     }
 
+    // Flag malicious skills
+    let flaggedCount = 0;
+    for (const r of reviews) {
+      if (r.recommendation === 'flag-malicious') {
+        await skillQueries.flagMalicious(db, r.skill_id);
+        flaggedCount++;
+      }
+    }
+
     return NextResponse.json(
       {
         submitted: reviews.length,
         verified: verifiedCount,
+        flagged: flaggedCount,
       },
       {
         headers: createRateLimitHeaders(rateLimitResult),

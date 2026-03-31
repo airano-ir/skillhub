@@ -57,14 +57,15 @@ export async function search(query: string, options: SearchOptions): Promise<voi
         `${num} ${verified} ${chalk.cyan(skill.id.padEnd(38))} ${security}`
       );
 
-      // Second line: AI score (if reviewed) + downloads + stars + description
+      // Second line: AI score + downloads + stars + description
       const aiScore = skill.aiScore;
-      const hasAiScore = aiScore != null && aiScore > 0 && skill.reviewStatus && skill.reviewStatus !== 'unreviewed' && skill.reviewStatus !== 'auto-scored';
-      const aiPrefix = hasAiScore
-        ? `${chalk.magenta('AI')} ${(aiScore >= 75 ? chalk.green : aiScore >= 50 ? chalk.yellow : chalk.dim)(String(aiScore))}  `
+      const isAiReviewed = aiScore != null && aiScore > 0 && skill.reviewStatus && skill.reviewStatus !== 'unreviewed' && skill.reviewStatus !== 'auto-scored';
+      const showAiScore = isAiReviewed;
+      const aiPrefix = showAiScore
+        ? `${chalk.magenta('AI')} ${(aiScore >= 75 ? chalk.green : aiScore >= 50 ? chalk.yellow : chalk.dim)(String(aiScore).padStart(2))}  `
         : '';
       console.log(
-        `     ${aiPrefix}⬇ ${formatNumber(skill.downloadCount).padStart(6)}  ⭐ ${formatNumber(skill.githubStars).padStart(6)}  ${chalk.dim(skill.description.slice(0, hasAiScore ? 45 : 55))}${skill.description.length > (hasAiScore ? 45 : 55) ? '...' : ''}`
+        `     ${aiPrefix}⬇ ${formatNumber(skill.downloadCount).padStart(6)}  ⭐ ${formatNumber(skill.githubStars).padStart(6)}  ${chalk.dim(skill.description.slice(0, showAiScore ? 45 : 55))}${skill.description.length > (showAiScore ? 45 : 55) ? '...' : ''}`
       );
 
       // Third line: Rating (only if ratingCount >= 3)

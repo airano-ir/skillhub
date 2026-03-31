@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Star, Download, Shield, CheckCircle, Clock, RefreshCw, Sparkles } from 'lucide-react';
+import { Star, Download, Shield, CheckCircle, Clock, RefreshCw, Sparkles, XCircle, ShieldAlert } from 'lucide-react';
 import { formatCompactNumber } from '@/lib/format-number';
 
 const FORMAT_BADGE_LABELS: Record<string, string> = {
@@ -27,6 +27,8 @@ interface SkillCardProps {
     sourceFormat?: string | null;
     createdAt?: Date | string | null;
     updatedAt?: Date | string | null;
+    reviewOutdated?: boolean | null;
+    isMalicious?: boolean | null;
   };
   locale: string;
   /** Show time badge (for New Skills page) */
@@ -56,16 +58,21 @@ export function SkillCard({ skill, locale, showTimeBadge, formatTimeAgo }: Skill
 
   const showRating = (skill.ratingCount ?? 0) >= 3;
 
-  // AI review score badge (only for reviewed skills with score >= 50)
+  // AI review score badge (for all reviewed skills)
   const getAiScoreBadge = () => {
     const rs = skill.reviewStatus;
     if (!rs || rs === 'unreviewed' || rs === 'auto-scored') return null;
     const score = skill.aiScore ?? skill.latestAiScore;
-    if (!score || score < 50) return null;
+    if (score == null) return null;
+    if (score === 0) {
+      return { score: 0, color: 'text-error bg-error/10 border-error/20', rejected: true };
+    }
     const color = score >= 75
       ? 'text-success bg-success/10 border-success/20'
-      : 'text-gold bg-gold/10 border-gold/20';
-    return { score, color };
+      : score >= 50
+      ? 'text-gold bg-gold/10 border-gold/20'
+      : 'text-text-muted bg-surface-subtle border-border';
+    return { score, color, rejected: false };
   };
   const aiScoreBadge = getAiScoreBadge();
 
@@ -117,12 +124,28 @@ export function SkillCard({ skill, locale, showTimeBadge, formatTimeAgo }: Skill
         {skill.description}
       </p>
 
-      {/* Metadata Row: AI Score + Stars + Downloads + Rating */}
+      {/* Metadata Row: Malware / AI Score + Stars + Downloads + Rating */}
       <div className="flex flex-wrap items-center gap-4 text-sm text-text-muted mb-2">
-        {aiScoreBadge && (
+        {skill.isMalicious && (
+          <span className="flex items-center gap-1 px-1.5 py-0.5 text-xs font-bold rounded border text-error bg-error/10 border-error/20">
+            <ShieldAlert className="w-3 h-3" />
+            <span>{locale === 'fa' ? 'بدافزار' : 'Malware'}</span>
+          </span>
+        )}
+        {!skill.isMalicious && aiScoreBadge && (
           <span className={`flex items-center gap-1 px-1.5 py-0.5 text-xs font-medium rounded border ${aiScoreBadge.color}`}>
-            <Sparkles className="w-3 h-3" />
-            <span className="ltr-nums">{aiScoreBadge.score}</span>
+            {aiScoreBadge.rejected ? (
+              <>
+                <XCircle className="w-3 h-3" />
+                <span>{locale === 'fa' ? 'رد شده' : 'Rejected'}</span>
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-3 h-3" />
+                <span className="ltr-nums">{aiScoreBadge.score}</span>
+                {skill.reviewOutdated && <span className="text-warning" title="Review based on previous version">⚠</span>}
+              </>
+            )}
           </span>
         )}
         <span className="flex items-center gap-1">

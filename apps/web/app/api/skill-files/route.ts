@@ -87,6 +87,14 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Block file downloads for malicious skills
+    if (skill.isMalicious) {
+      return NextResponse.json(
+        { error: 'This skill has been flagged as malicious. File downloads are blocked.', code: 'MALICIOUS' },
+        { status: 403 }
+      );
+    }
+
     const { githubOwner, githubRepo, skillPath, branch, commitSha, sourceFormat } = skill;
 
     // === CACHE CHECK ===

@@ -120,7 +120,7 @@ export default async function CliDocsPage({
                   <div>
                     <p className="text-sm text-text-muted mb-1">{tContent('exSearchSort')}</p>
                     <code className="block text-sm font-mono">
-                      <span className="text-text-muted">$</span> npx skillhub search &quot;code review&quot; --sort stars --limit 5
+                      <span className="text-text-muted">$</span> npx skillhub search &quot;code review&quot; --sort aiScore --limit 5
                     </code>
                     <code className="block text-sm font-mono text-text-muted mt-1">
                       # Sort options: recommended (default), aiScore, downloads, stars, rating, recent

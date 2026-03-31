@@ -39,6 +39,14 @@ export async function install(skillId: string, options: InstallOptions): Promise
       try {
         skillInfo = await getSkill(skillId);
         if (skillInfo) {
+          // Block installation of malicious skills
+          if (skillInfo.isMalicious) {
+            spinner.fail(chalk.red('This skill has been flagged as malicious (contains malware).'));
+            console.log(chalk.red('Installation blocked for your safety.'));
+            console.log(chalk.dim(`See: https://skills.palebluedot.live/en/skill/${skillId}`));
+            process.exit(1);
+          }
+
           const reviewBadge = skillInfo.aiScore && skillInfo.reviewStatus === 'ai-reviewed'
             ? chalk.dim(` | AI: ${skillInfo.aiScore}/100`)
             : skillInfo.reviewStatus === 'verified'

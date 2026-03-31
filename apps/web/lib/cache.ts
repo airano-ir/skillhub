@@ -171,6 +171,8 @@ export const cacheKeys = {
   skillReview: (id: string) => `review:skill:${id.replace(/\//g, ':')}`,
   reviewStats: () => 'review:stats',
   reviewedPage: (sort: string, page: number, minScore = 50) => `page:reviewed:${sort}:s${minScore}:${page}`,
+  reviewStatsPublic: () => 'page:review-stats:public',
+  malwarePage: (page: number) => `page:malware:${page}`,
 };
 
 // TTL values in seconds
@@ -189,6 +191,8 @@ export const cacheTTL = {
   download: 5 * 60,         // 5 minutes - same IP can only count as 1 download per 5 min
   reviewStats: 60,          // 1 minute - admin review stats
   reviewed: 60 * 60,         // 1 hour - reviewed skills page
+  reviewStatsPublic: 30 * 60, // 30 minutes - public review stats page
+  malware: 60 * 60,           // 1 hour - malware listing page
 };
 
 /**

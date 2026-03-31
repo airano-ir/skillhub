@@ -36,7 +36,7 @@ type DB = PostgresJsDatabase<typeof schema>;
  * Skills with skill_type=NULL (newly crawled, not yet curated) are included
  * so they don't disappear between curate.mjs runs.
  */
-const browseReadyFilter = sql`(${skills.isDuplicate} = false OR ${skills.isOwnerClaimed} = true) AND ${skills.isStale} = false`;
+const browseReadyFilter = sql`(${skills.isDuplicate} = false OR ${skills.isOwnerClaimed} = true) AND ${skills.isStale} = false AND ${skills.isMalicious} = false`;
 
 /** Minimum repo age gap (in days) to trust repo_created_at over stars for duplicate detection */
 const REPO_AGE_THRESHOLD_DAYS = 75;
@@ -483,11 +483,41 @@ export const skillQueries = {
     if (minScore > 0) {
       conditions.push(sql`${skills.latestAiScore} >= ${minScore}`);
     }
-    return db.select().from(skills)
+    const results = await db.select().from(skills)
       .where(and(...conditions))
       .orderBy(order)
       .limit(limit)
       .offset(offset);
+
+    if (results.length === 0) return results.map(s => ({ ...s, reviewOutdated: false as boolean }));
+
+    // Batch-fetch latest review hashes for these skills
+    const ids = results.map(s => s.id);
+    const reviewRows = await db
+      .select({
+        skillId: skillReviews.skillId,
+        hashAtReview: skillReviews.contentHashAtReview,
+      })
+      .from(skillReviews)
+      .where(and(
+        inArray(skillReviews.skillId, ids),
+        sql`${skillReviews.contentHashAtReview} IS NOT NULL AND length(${skillReviews.contentHashAtReview}) > 1`,
+      ))
+      .orderBy(desc(skillReviews.reviewedAt));
+    // Keep only the latest review per skill
+    const reviewHashMap = new Map<string, string>();
+    for (const r of reviewRows) {
+      if (!reviewHashMap.has(r.skillId) && r.hashAtReview && r.hashAtReview.length > 1) {
+        reviewHashMap.set(r.skillId, r.hashAtReview);
+      }
+    }
+
+    return results.map(s => ({
+      ...s,
+      reviewOutdated: reviewHashMap.has(s.id)
+        && s.contentHash != null && s.contentHash.length > 1
+        && reviewHashMap.get(s.id) !== s.contentHash,
+    }));
   },
 
   /**
@@ -760,7 +790,7 @@ export const skillQueries = {
     await db
       .update(skills)
       .set({
-        downloadCount: sql`${skills.downloadCount} + 1`,
+        downloadCount: sql`COALESCE(${skills.downloadCount}, 0) + 1`,
         lastDownloadedAt: new Date(),
       })
       .where(eq(skills.id, id));
@@ -815,6 +845,23 @@ export const skillQueries = {
    */
   unblock: async (db: DB, id: string) => {
     await db.update(skills).set({ isBlocked: false }).where(eq(skills.id, id));
+  },
+
+  /**
+   * Flag a skill as malicious (contains malware)
+   */
+  flagMalicious: async (db: DB, id: string) => {
+    await db.update(skills).set({
+      isMalicious: true,
+      securityStatus: 'fail' as const,
+    }).where(eq(skills.id, id));
+  },
+
+  /**
+   * Unflag a skill as malicious
+   */
+  unflagMalicious: async (db: DB, id: string) => {
+    await db.update(skills).set({ isMalicious: false }).where(eq(skills.id, id));
   },
 
   /**
@@ -2528,6 +2575,7 @@ export const skillReviewQueries = {
       i18nPriority?: number;
       contentHashAtReview?: string;
       reviewVersion?: number;
+      recommendation?: string;
     }>
   ) => {
     return db
@@ -2549,6 +2597,7 @@ export const skillReviewQueries = {
           i18nPriority: r.i18nPriority ?? 0,
           contentHashAtReview: r.contentHashAtReview,
           reviewVersion: r.reviewVersion ?? 1,
+          recommendation: r.recommendation,
         }))
       )
       .returning();
@@ -2694,6 +2743,117 @@ export const skillReviewQueries = {
   },
 
   /**
+   * Get pipeline stats for browse-ready SKILL.md skills (matches site-visible skills)
+   */
+  getPublicPipelineStats: async (db: DB) => {
+    const result = await db
+      .select({
+        reviewStatus: skills.reviewStatus,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(skills)
+      .where(
+        and(
+          eq(skills.isBlocked, false),
+          eq(skills.sourceFormat, 'skill.md'),
+          browseReadyFilter,
+        )
+      )
+      .groupBy(skills.reviewStatus);
+
+    const stats: Record<string, number> = {};
+    for (const row of result) {
+      stats[row.reviewStatus ?? 'unreviewed'] = row.count;
+    }
+    return stats;
+  },
+
+  /**
+   * Get AI score distribution for reviewed skills (matches badge system: 75+, 50-74, <50)
+   */
+  getScoreDistribution: async (db: DB) => {
+    const result = await db
+      .select({
+        range: sql<string>`CASE
+          WHEN ${skills.latestAiScore} >= 75 THEN 'high'
+          WHEN ${skills.latestAiScore} >= 50 THEN 'mid'
+          ELSE 'low'
+        END`,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(skills)
+      .where(
+        and(
+          eq(skills.isBlocked, false),
+          eq(skills.sourceFormat, 'skill.md'),
+          browseReadyFilter,
+          inArray(skills.reviewStatus, ['ai-reviewed', 'verified']),
+        )
+      )
+      .groupBy(sql`CASE
+        WHEN ${skills.latestAiScore} >= 75 THEN 'high'
+        WHEN ${skills.latestAiScore} >= 50 THEN 'mid'
+        ELSE 'low'
+      END`);
+
+    const dist: Record<string, number> = { high: 0, mid: 0, low: 0 };
+    for (const row of result) {
+      dist[row.range] = row.count;
+    }
+    return dist;
+  },
+
+  /**
+   * Get security scan stats (counts by security_status)
+   */
+  getSecurityStats: async (db: DB) => {
+    const result = await db
+      .select({
+        status: skills.securityStatus,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(skills)
+      .where(
+        and(
+          eq(skills.isBlocked, false),
+          eq(skills.sourceFormat, 'skill.md'),
+          sql`${skills.securityStatus} IS NOT NULL`,
+        )
+      )
+      .groupBy(skills.securityStatus);
+
+    const stats: Record<string, number> = { pass: 0, warning: 0, fail: 0 };
+    for (const row of result) {
+      if (row.status) stats[row.status] = row.count;
+    }
+    return stats;
+  },
+
+  /**
+   * Get malware-flagged skills (for public malware listing page)
+   */
+  getMaliciousSkills: async (db: DB, limit = 50, offset = 0) => {
+    return db
+      .select()
+      .from(skills)
+      .where(and(eq(skills.isMalicious, true), eq(skills.isBlocked, false)))
+      .orderBy(desc(skills.updatedAt))
+      .limit(limit)
+      .offset(offset);
+  },
+
+  /**
+   * Count malware-flagged skills
+   */
+  countMaliciousSkills: async (db: DB) => {
+    const result = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(skills)
+      .where(and(eq(skills.isMalicious, true), eq(skills.isBlocked, false)));
+    return result[0]?.count ?? 0;
+  },
+
+  /**
    * Get skills pending AI review (auto-scored, security=pass, quality>=threshold)
    * Only returns standard SKILL.md format skills (excludes agents.md, cursorrules, etc.)
    * Supports owner-capped batches to ensure diversity (max N skills per github_owner).
@@ -2710,6 +2870,10 @@ export const skillReviewQueries = {
       reReviewAll?: boolean;
       ownerLimit?: number;
       currentReviewVersion?: number;
+      sortBy?: 'quality' | 'stars' | 'downloads';
+      minAiScore?: number;
+      maxAiScore?: number;
+      reviewedBefore?: string;
     } = {}
   ) => {
     const {
@@ -2721,6 +2885,10 @@ export const skillReviewQueries = {
       reReviewAll = false,
       ownerLimit = 0,
       currentReviewVersion = 0,
+      sortBy = 'quality',
+      minAiScore,
+      maxAiScore,
+      reviewedBefore,
     } = options;
 
     const conditions = [
@@ -2763,6 +2931,19 @@ export const skillReviewQueries = {
       conditions.push(eq(skills.securityStatus, 'pass'));
     }
 
+    // AI score range filters (for targeted re-review of inflated scores)
+    if (minAiScore != null) {
+      conditions.push(gte(skills.latestAiScore, minAiScore));
+    }
+    if (maxAiScore != null) {
+      conditions.push(sql`${skills.latestAiScore} <= ${maxAiScore}`);
+    }
+
+    // Date filter: only include skills reviewed before a given date
+    if (reviewedBefore) {
+      conditions.push(sql`${skills.latestReviewDate} < ${reviewedBefore}::timestamp`);
+    }
+
     const selectFields = {
       id: skills.id,
       name: skills.name,
@@ -2771,6 +2952,7 @@ export const skillReviewQueries = {
       qualityScore: skills.qualityScore,
       securityStatus: skills.securityStatus,
       githubStars: skills.githubStars,
+      downloadCount: skills.downloadCount,
       skillType: skills.skillType,
       reviewStatus: skills.reviewStatus,
       contentHash: skills.contentHash,
@@ -2780,11 +2962,21 @@ export const skillReviewQueries = {
       branch: skills.branch,
     };
 
-    // Re-review-all: prioritize already-reviewed skills first, then auto-scored
-    // Use sql.raw() for the ORDER BY to avoid parameterization issues in db.execute()
-    const orderBySql = reReviewAll
-      ? sql`CASE WHEN review_status IN ('ai-reviewed', 'needs-re-review') THEN 0 ELSE 1 END, quality_score DESC NULLS LAST, github_stars DESC NULLS LAST`
-      : sql`quality_score DESC NULLS LAST, github_stars DESC NULLS LAST`;
+    // Build sort expression based on sortBy option
+    // Use COALESCE to handle NULL download_count/quality_score (NULL + 1 = NULL means
+    // skills never downloaded have NULL, not 0). Use sql.raw() for ORDER BY to avoid
+    // Drizzle parameterizing the fragment (which turns it into a string constant).
+    const sortExprRaw = sortBy === 'downloads'
+      ? `COALESCE(download_count, 0) DESC, COALESCE(quality_score, 0) DESC`
+      : sortBy === 'stars'
+        ? `COALESCE(github_stars, 0) DESC, COALESCE(quality_score, 0) DESC`
+        : `COALESCE(quality_score, 0) DESC, COALESCE(github_stars, 0) DESC`;
+
+    // Re-review-all: prioritize already-reviewed skills first, then apply sort
+    const orderByRaw = reReviewAll
+      ? `CASE WHEN review_status IN ('ai-reviewed', 'needs-re-review') THEN 0 ELSE 1 END, ${sortExprRaw}`
+      : sortExprRaw;
+    const orderBySql = sql.raw(orderByRaw);
 
     // Owner-capped batch: limit skills per github_owner for diversity
     if (ownerLimit > 0) {
@@ -2794,6 +2986,7 @@ export const skillReviewQueries = {
           SELECT id, name, description, raw_content, quality_score, security_status,
                  github_stars, skill_type, review_status, content_hash,
                  github_owner, github_repo, skill_path, branch,
+                 download_count, latest_ai_score, latest_review_date,
                  ROW_NUMBER() OVER (
                    PARTITION BY github_owner
                    ORDER BY ${orderBySql}
@@ -2803,7 +2996,8 @@ export const skillReviewQueries = {
         )
         SELECT id, name, description, raw_content AS "rawContent",
                quality_score AS "qualityScore", security_status AS "securityStatus",
-               github_stars AS "githubStars", skill_type AS "skillType",
+               github_stars AS "githubStars", download_count AS "downloadCount",
+               skill_type AS "skillType",
                review_status AS "reviewStatus", content_hash AS "contentHash",
                github_owner AS "githubOwner", github_repo AS "githubRepo",
                skill_path AS "skillPath", branch
@@ -2816,10 +3010,18 @@ export const skillReviewQueries = {
       return [...results];
     }
 
-    // Build order: re-review priority first (if applicable), then quality
+    // Build order: re-review priority first (if applicable), then sort
+    // Use COALESCE to handle NULLs (download_count is NULL for never-downloaded skills,
+    // not 0, because increment uses NULL + 1 = NULL). Without COALESCE, NULLs sort
+    // first in DESC order, making 50K+ NULL skills appear before high-download skills.
+    const baseSortClauses = sortBy === 'downloads'
+      ? [sql`COALESCE(${skills.downloadCount}, 0) DESC`, sql`COALESCE(${skills.qualityScore}, 0) DESC`]
+      : sortBy === 'stars'
+        ? [sql`COALESCE(${skills.githubStars}, 0) DESC`, sql`COALESCE(${skills.qualityScore}, 0) DESC`]
+        : [sql`COALESCE(${skills.qualityScore}, 0) DESC`, sql`COALESCE(${skills.githubStars}, 0) DESC`];
     const orderClauses = reReviewAll
-      ? [sql`CASE WHEN ${skills.reviewStatus} IN ('ai-reviewed', 'needs-re-review') THEN 0 ELSE 1 END`, desc(skills.qualityScore), desc(skills.githubStars)]
-      : [desc(skills.qualityScore), desc(skills.githubStars)];
+      ? [sql`CASE WHEN ${skills.reviewStatus} IN ('ai-reviewed', 'needs-re-review') THEN 0 ELSE 1 END`, ...baseSortClauses]
+      : baseSortClauses;
 
     return db
       .select(selectFields)

@@ -8,7 +8,8 @@ import { SkillCard } from '@/components/SkillCard';
 import { ReviewedSortSelector } from '@/components/ReviewedSortSelector';
 import { getPageAlternates } from '@/lib/seo';
 import { getOrSetCache, cacheKeys, cacheTTL } from '@/lib/cache';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, BarChart3 } from 'lucide-react';
+import Link from 'next/link';
 
 
 // Force dynamic rendering to fetch fresh data from database
@@ -95,9 +96,16 @@ export default async function ReviewedPage({
             </div>
             <h1 className="hero-title mb-4">{t('title')}</h1>
             <p className="hero-subtitle max-w-2xl mx-auto mb-6">{t('subtitle')}</p>
-            <p className="text-text-secondary text-sm max-w-3xl mx-auto leading-relaxed">
+            <p className="text-text-secondary text-sm max-w-3xl mx-auto leading-relaxed mb-4">
               {t('explanation')}
             </p>
+            <Link
+              href={`/${locale}/reviewed/stats`}
+              className="inline-flex items-center gap-1.5 text-sm text-primary-600 hover:text-primary-700 font-medium"
+            >
+              <BarChart3 className="w-4 h-4" />
+              {locale === 'fa' ? 'مشاهده آمار بررسی‌ها' : 'View Review Statistics'}
+            </Link>
           </div>
         </section>
 

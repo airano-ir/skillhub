@@ -54,3 +54,4 @@ scripts/curation/data/*
 # !.claude/agents/
 # !.claude/council_reasoning.md
 .claude/settings.json
+.mcp.json

@@ -21,6 +21,7 @@ export function Header() {
     { name: t('home'), href: `/${locale}` },
     { name: t('browse'), href: `/${locale}/browse` },
     { name: t('categories'), href: `/${locale}/categories` },
+    { name: t('reviewed'), href: `/${locale}/reviewed` },
     { name: t('docs'), href: `/${locale}/docs` },
   ];
 

@@ -7,10 +7,8 @@ import { getCached, setCache, cacheKeys, cacheTTL } from '@/lib/cache';
 const db = createDb();
 
 interface ReviewStatsData {
-  unreviewed: number;
-  auto_scored: number;
+  total_skills: number;
   ai_reviewed: number;
-  verified: number;
   needs_re_review: number;
   total_reviews: number;
 }
@@ -45,17 +43,18 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Run stats and total reviews count in parallel
+    // Run pipeline stats and total reviews count in parallel
     const [statusCounts, totalReviews] = await Promise.all([
-      skillReviewQueries.getStats(db),
+      skillReviewQueries.getPublicPipelineStats(db),
       skillReviewQueries.countTotalReviews(db),
     ]);
 
+    // total_skills = sum of all statuses from pipeline query (browse-ready SKILL.md)
+    const totalSkills = Object.values(statusCounts).reduce((sum, n) => sum + n, 0);
+
     const data: ReviewStatsData = {
-      unreviewed: statusCounts['unreviewed'] ?? 0,
-      auto_scored: statusCounts['auto-scored'] ?? 0,
+      total_skills: totalSkills,
       ai_reviewed: statusCounts['ai-reviewed'] ?? 0,
-      verified: statusCounts['verified'] ?? 0,
       needs_re_review: statusCounts['needs-re-review'] ?? 0,
       total_reviews: totalReviews,
     };
