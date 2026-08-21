@@ -47,8 +47,8 @@ COPY --from=builder --chown=indexer:nodejs /app/services/indexer/dist ./dist
 # Curation scripts + skillhub-core (for batch-security, batch-score, curate)
 COPY --from=builder --chown=indexer:nodejs /app/scripts/curation ./scripts/curation
 COPY --from=builder --chown=indexer:nodejs /app/packages/core/dist ./packages/core/dist
-RUN npm install --no-save pg gray-matter yaml
 
+# Dependencies are already bundled by tsup or handled in deps stage
 USER indexer
 
 CMD ["node", "dist/worker.js"]

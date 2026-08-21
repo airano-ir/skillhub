@@ -1,5 +1,10 @@
 import Redis from 'ioredis';
 
+// Extend global for memory cache fallback
+declare global {
+  var memoryCache: Map<string, number>;
+}
+
 // Redis client singleton
 let redis: Redis | null = null;
 
@@ -203,8 +208,21 @@ export const cacheTTL = {
 export async function shouldCountView(skillId: string, ip: string): Promise<boolean> {
   const client = getRedis();
 
-  // If Redis is not available, always count (graceful degradation)
-  if (!client) return true;
+  // If Redis is not available, use an in-memory cache as fallback
+  // Note: This will only work per-instance, but better than allowing all
+  if (!client) {
+    const memoryKey = `view:${skillId}:${ip}`;
+    if (global.memoryCache?.has(memoryKey)) return false;
+
+    if (!global.memoryCache) {
+      global.memoryCache = new Map();
+      // Simple cleanup every hour
+      setInterval(() => global.memoryCache.clear(), 60 * 60 * 1000);
+    }
+
+    global.memoryCache.set(memoryKey, Date.now());
+    return true;
+  }
 
   const key = cacheKeys.skillView(skillId, ip);
 
@@ -228,8 +246,20 @@ export async function shouldCountView(skillId: string, ip: string): Promise<bool
 export async function shouldCountDownload(skillId: string, ip: string): Promise<boolean> {
   const client = getRedis();
 
-  // If Redis is not available, always count (graceful degradation)
-  if (!client) return true;
+  // If Redis is not available, use an in-memory cache as fallback
+  if (!client) {
+    const memoryKey = `dl:${skillId}:${ip}`;
+    if (global.memoryCache?.has(memoryKey)) return false;
+
+    if (!global.memoryCache) {
+      global.memoryCache = new Map();
+      // Simple cleanup every hour
+      setInterval(() => global.memoryCache.clear(), 60 * 60 * 1000);
+    }
+
+    global.memoryCache.set(memoryKey, Date.now());
+    return true;
+  }
 
   const key = cacheKeys.skillDownload(skillId, ip);
 

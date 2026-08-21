@@ -1,6 +1,8 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { createDb, skills, discoveredRepos, awesomeLists, sql } from '@skillhub/db';
 import { getCached, setCache, cacheTTL } from '@/lib/cache';
+
+export const revalidate = 3600; // Next.js cache revalidation time in seconds
 import { withRateLimit, createRateLimitResponse, createRateLimitHeaders } from '@/lib/rate-limit';
 
 const db = createDb();
@@ -42,7 +44,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(cached, {
         headers: {
           'X-Cache': 'HIT',
-          'Cache-Control': 'public, max-age=3600, stale-while-revalidate=7200',
           ...createRateLimitHeaders(rateLimitResult),
         },
       });
@@ -125,7 +126,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(data, {
       headers: {
         'X-Cache': 'MISS',
-        'Cache-Control': 'public, max-age=3600, stale-while-revalidate=7200',
         ...createRateLimitHeaders(rateLimitResult),
       },
     });

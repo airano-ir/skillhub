@@ -153,6 +153,33 @@ const DATA_EXFILTRATION_PATTERNS: PatternCheck[] = [
   },
 ];
 
+const OBFUSCATION_PATTERNS: PatternCheck[] = [
+  {
+    pattern: /eval\s*\(\s*(atob|Buffer\.from|decodeURIComponent)\s*\(/,
+    severity: 'critical',
+    type: 'eval_usage',
+    description: 'Obfuscated eval usage (Base64 decoding to eval)',
+  },
+  {
+    pattern: /Function\s*\(\s*["']return\s+/,
+    severity: 'high',
+    type: 'eval_usage',
+    description: 'Function constructor used as eval',
+  },
+  {
+    pattern: /\b(exec|system|spawn|popen)\s*\(\s*(atob|Buffer\.from|decodeURIComponent)\s*\(/,
+    severity: 'critical',
+    type: 'shell_injection',
+    description: 'Obfuscated command execution',
+  },
+  {
+    pattern: /\\x[0-9a-fA-F]{2}\\x[0-9a-fA-F]{2}/,
+    severity: 'medium',
+    type: 'shell_injection',
+    description: 'Hex encoded strings often used for obfuscation',
+  },
+];
+
 const CREDENTIAL_PATTERNS: PatternCheck[] = [
   {
     pattern: /password\s*[=:]\s*["'][^"']+["']/i,
@@ -256,6 +283,19 @@ function scanContent(content: string): SecurityIssue[] {
     }
   }
 
+  // Check obfuscation patterns
+  for (const check of OBFUSCATION_PATTERNS) {
+    const match = check.pattern.exec(content);
+    if (match) {
+      issues.push({
+        severity: check.severity,
+        type: check.type,
+        description: check.description,
+        line: getLineNumber(content, match.index),
+      });
+    }
+  }
+
   return issues;
 }
 
@@ -278,6 +318,20 @@ function scanScript(name: string, content: string): SecurityIssue[] {
 
   // Check credential patterns in scripts
   for (const check of CREDENTIAL_PATTERNS) {
+    const match = check.pattern.exec(content);
+    if (match) {
+      issues.push({
+        severity: check.severity,
+        type: check.type,
+        description: check.description,
+        location: name,
+        line: getLineNumber(content, match.index),
+      });
+    }
+  }
+
+  // Check obfuscation patterns in scripts
+  for (const check of OBFUSCATION_PATTERNS) {
     const match = check.pattern.exec(content);
     if (match) {
       issues.push({

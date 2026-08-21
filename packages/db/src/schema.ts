@@ -133,6 +133,9 @@ export const skills = pgTable(
     contentHashIdx: index('idx_skills_content_hash').on(table.contentHash),
     staleIdx: index('idx_skills_stale').on(table.isStale),
     aiScoreIdx: index('idx_skills_ai_score').on(table.latestAiScore),
+    popularityIdx: index('idx_skills_popularity').on(table.downloadCount, table.qualityScore),
+    starsQualityIdx: index('idx_skills_stars_quality').on(table.githubStars, table.qualityScore),
+    createdAtIdx: index('idx_skills_created_at').on(table.createdAt),
   })
 );
 

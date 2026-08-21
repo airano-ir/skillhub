@@ -48,11 +48,17 @@ export function shouldProtectPath(pathname: string): boolean {
 
   // List of API routes that need CSRF protection (state-changing)
   const protectedRoutes = [
-    '/api/favorites',       // POST (add), DELETE (remove)
-    '/api/favorites/check', // POST (batch check - read-like but uses POST)
-    '/api/ratings',         // POST (submit rating)
+    '/api/favorites',              // POST (add), DELETE (remove)
+    '/api/favorites/check',        // POST (batch check - read-like but uses POST)
+    '/api/ratings',                // POST (submit rating)
     '/api/skills/removal-request', // POST (request removal)
+    '/api/skills/repo-removal-request', // POST (request repo removal)
     '/api/skills/add-request',     // POST (request addition)
+    '/api/skills/install',         // POST (track installation)
+    '/api/newsletter/subscribe',   // POST (subscribe)
+    '/api/newsletter/unsubscribe', // POST (unsubscribe)
+    '/api/early-access',           // POST (early access request)
+    '/api/review/submit',          // POST (admin review submit)
   ];
 
   // Check if the pathname matches any protected route
