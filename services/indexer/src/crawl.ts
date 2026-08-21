@@ -5,9 +5,9 @@
  */
 
 import { INSTRUCTION_FILE_PATTERNS, type SourceFormat } from 'skillhub-core';
-import { scheduleFullCrawl, scheduleIncrementalCrawl, getQueueStats, getQueue } from './queue.js';
+import { scheduleFullCrawl, scheduleIncrementalCrawl, getQueueStats } from './queue.js';
 import { syncAllSkillsToMeilisearch, checkMeilisearchHealth } from './meilisearch-sync.js';
-import { createDb, skillQueries, categoryQueries, discoveredRepoQueries, awesomeListQueries, addRequestQueries, userQueries, sql } from '@skillhub/db';
+import { createDb, skillQueries, categoryQueries, discoveredRepoQueries, awesomeListQueries, addRequestQueries, userQueries } from '@skillhub/db';
 import { createStrategyOrchestrator, createDeepScanCrawler, createAwesomeListCrawler, createPopularReposCrawler, createCommitsSearchCrawler } from './strategies/index.js';
 import { createCrawler } from './crawler.js';
 import { indexSkill } from './skill-indexer.js';
@@ -120,29 +120,14 @@ async function main() {
     }
 
     case 'stats': {
-      const q = getQueue();
-      console.log('Queue statistics:');
+      console.log('Queue statistics (Graphile Worker approx):');
       const stats = await getQueueStats();
       console.log(`  Waiting: ${stats.waiting}`);
       console.log(`  Active: ${stats.active}`);
       console.log(`  Completed: ${stats.completed}`);
       console.log(`  Failed: ${stats.failed}`);
       console.log(`  Delayed: ${stats.delayed}`);
-
-      // Show failed job details if any
-      if (stats.failed > 0) {
-        const failedJobs = await q.getFailed(0, 10);
-        if (failedJobs.length > 0) {
-          console.log('\nFailed jobs:');
-          for (const job of failedJobs) {
-            const failedAt = job.finishedOn ? new Date(job.finishedOn).toISOString() : 'unknown';
-            console.log(`  - [${job.data.type}] ${job.name} (${failedAt})`);
-            if (job.failedReason) {
-              console.log(`    Reason: ${job.failedReason.slice(0, 120)}`);
-            }
-          }
-        }
-      }
+      console.log('\nNote: Graphile Worker uses PostgreSQL directly. Check the graphile_worker.jobs table for accurate stats.');
       break;
     }
 
@@ -698,8 +683,10 @@ async function main() {
 
       // Step 2: Schedule full crawl (uses existing crawler with code search)
       console.log('\nStep 2: Scheduling full crawl...');
-      const enhancedJobId = await scheduleFullCrawl({
-        minStars: parseInt(process.env.INDEXER_MIN_STARS || '0'),
+      const utils = await import('./queue.js').then(m => m.getWorkerUtils());
+      const enhancedJobId = await utils.addJob('indexer', {
+        type: 'full-enhanced',
+        options: { minStars: parseInt(process.env.INDEXER_MIN_STARS || '0') }
       });
       console.log(`Full crawl scheduled with job ID: ${enhancedJobId}`);
 

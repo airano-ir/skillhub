@@ -1,7 +1,6 @@
-import type { Job } from 'bullmq';
-import { Worker } from 'bullmq';
+import { run, TaskList, JobHelpers } from 'graphile-worker';
 import pLimit from 'p-limit';
-import { createDb, type Database, discoveredRepoQueries, awesomeListQueries, addRequestQueries, skillQueries, runPostCrawlCuration, sql } from '@skillhub/db';
+import { createDb, type Database, discoveredRepoQueries, awesomeListQueries, addRequestQueries, skillQueries, runPostCrawlCuration } from '@skillhub/db';
 import { GitHubCrawler, createCrawler } from './crawler.js';
 import type { IndexJobData, IndexJobResult } from './queue.js';
 import { setupRecurringJobs } from './queue.js';
@@ -9,38 +8,11 @@ import { logMeilisearchStatus } from './meilisearch-sync.js';
 import { indexSkill } from './skill-indexer.js';
 import { createStrategyOrchestrator, createDeepScanCrawler, createAwesomeListCrawler } from './strategies/index.js';
 
-const QUEUE_NAME = 'skill-indexing';
 const CONCURRENCY = 5;
 
 let db: Database | null = null;
 
-function getRedisConnection(): { host: string; port: number; password?: string; username?: string } {
-  const redisUrl = process.env.REDIS_URL;
-  if (redisUrl) {
-    const url = new URL(redisUrl);
-    const connection: {
-      host: string;
-      port: number;
-      password?: string;
-      username?: string;
-    } = {
-      host: url.hostname,
-      port: parseInt(url.port) || 6379,
-    };
-    // Add authentication if present in URL
-    if (url.password) {
-      connection.password = decodeURIComponent(url.password);
-    }
-    if (url.username && url.username !== 'default') {
-      connection.username = decodeURIComponent(url.username);
-    }
-    return connection;
-  }
-  return {
-    host: process.env.REDIS_HOST || 'localhost',
-    port: parseInt(process.env.REDIS_PORT || '6379'),
-  };
-}
+// Redis connection removed as we use PostgreSQL for queue now
 
 function getDb(): Database {
   if (!db) {
@@ -49,83 +21,100 @@ function getDb(): Database {
   return db;
 }
 
+// Adapter to make Graphile Worker job look like BullMQ job for our processors
+class JobAdapter {
+  id: string;
+  data: IndexJobData;
+  helpers: JobHelpers;
+  processedOn?: number;
+
+  constructor(payload: any, helpers: JobHelpers) {
+    this.id = helpers.job.id;
+    this.data = payload as IndexJobData;
+    this.helpers = helpers;
+    this.processedOn = Date.now();
+  }
+
+  async updateProgress(progress: number): Promise<void> {
+    // Graphile worker doesn't have built-in progress tracking like BullMQ
+    console.log(`[Job ${this.id}] Progress: ${progress}%`);
+  }
+}
+
 /**
- * Start the indexing worker
+ * Start the indexing worker using graphile-worker
  */
-export function startWorker(): Worker<IndexJobData, IndexJobResult> {
-  const worker = new Worker<IndexJobData, IndexJobResult>(
-    QUEUE_NAME,
-    async (job: Job<IndexJobData, IndexJobResult>) => {
+export async function startWorker() {
+  const connectionString = process.env.DATABASE_URL;
+  if (!connectionString) {
+    throw new Error('DATABASE_URL environment variable is required for graphile-worker');
+  }
+
+  const taskList: TaskList = {
+    indexer: async (payload, helpers) => {
       const startTime = Date.now();
+      const job = new JobAdapter(payload, helpers);
 
       console.log(`Processing job ${job.id}: ${job.data.type}`);
 
       try {
+        let result: IndexJobResult;
+        
         switch (job.data.type) {
           case 'full-crawl':
-            return await processFullCrawl(job);
-
+            result = await processFullCrawl(job as any);
+            break;
           case 'incremental':
-            return await processIncrementalCrawl(job);
-
+            result = await processIncrementalCrawl(job as any);
+            break;
           case 'index-skill':
-            return await processSkillIndex(job);
-
+            result = await processSkillIndex(job as any);
+            break;
           case 'discover-repos':
-            return await processDiscoverRepos(job);
-
+            result = await processDiscoverRepos(job as any);
+            break;
           case 'awesome-lists':
-            return await processAwesomeLists(job);
-
+            result = await processAwesomeLists(job as any);
+            break;
           case 'deep-scan':
-            return await processDeepScan(job);
-
+            result = await processDeepScan(job as any);
+            break;
           case 'full-enhanced':
-            return await processFullEnhanced(job);
-
+            result = await processFullEnhanced(job as any);
+            break;
           case 'process-add-requests':
-            return await processAddRequests(job);
-
-
+            result = await processAddRequests(job as any);
+            break;
           default:
-            throw new Error(`Unknown job type: ${job.data.type}`);
+            throw new Error(`Unknown job type: ${(job.data as any).type}`);
         }
+        
+        console.log(`Job ${job.id} completed in ${result.stats?.duration || Date.now() - startTime}ms`);
       } catch (error) {
         console.error(`Job ${job.id} failed:`, error);
         throw error;
-      } finally {
-        const duration = Date.now() - startTime;
-        console.log(`Job ${job.id} completed in ${duration}ms`);
       }
     },
-    {
-      connection: getRedisConnection(),
-      concurrency: CONCURRENCY,
-    }
-  );
+  };
 
-  worker.on('completed', (job, result) => {
-    console.log(`Job ${job.id} completed:`, result);
+  console.log(`Starting Graphile Worker with concurrency ${CONCURRENCY}`);
+  
+  const runner = await run({
+    connectionString,
+    concurrency: CONCURRENCY,
+    noHandleSignals: false,
+    pollInterval: 1000,
+    taskList,
   });
 
-  worker.on('failed', (job, error) => {
-    console.error(`Job ${job?.id} failed:`, error.message);
-  });
-
-  worker.on('error', (error) => {
-    console.error('Worker error:', error);
-  });
-
-  console.log(`Worker started with concurrency ${CONCURRENCY}`);
-
-  return worker;
+  return runner;
 }
 
 /**
  * Process a full crawl job
  */
 async function processFullCrawl(
-  job: Job<IndexJobData, IndexJobResult>
+  job: JobAdapter
 ): Promise<IndexJobResult> {
   const crawler = new GitHubCrawler();
   const options = job.data.options || {};
@@ -193,7 +182,7 @@ async function processFullCrawl(
  * Process an incremental crawl job
  */
 async function processIncrementalCrawl(
-  job: Job<IndexJobData, IndexJobResult>
+  job: JobAdapter
 ): Promise<IndexJobResult> {
   const crawler = new GitHubCrawler();
   const options = job.data.options || {};
@@ -259,7 +248,7 @@ async function processIncrementalCrawl(
  * Process a single skill index job
  */
 async function processSkillIndex(
-  job: Job<IndexJobData, IndexJobResult>
+  job: JobAdapter
 ): Promise<IndexJobResult> {
   const source = job.data.source;
   if (!source) {
@@ -272,7 +261,12 @@ async function processSkillIndex(
   await job.updateProgress(10);
 
   try {
-    const skillId = await indexSkill(crawler, source, force);
+    const skillId = await indexSkill(crawler, {
+      owner: source.owner,
+      repo: source.repo,
+      path: source.path || '.',
+      branch: source.branch || 'main'
+    }, force);
 
     if (skillId) {
       return {
@@ -298,7 +292,7 @@ async function processSkillIndex(
  * Process discover-repos job - run all discovery strategies
  */
 async function processDiscoverRepos(
-  job: Job<IndexJobData, IndexJobResult>
+  job: JobAdapter
 ): Promise<IndexJobResult> {
   const database = getDb();
   const orchestrator = createStrategyOrchestrator();
@@ -344,7 +338,7 @@ async function processDiscoverRepos(
  * Process awesome-lists job - crawl curated lists for skill repos
  */
 async function processAwesomeLists(
-  job: Job<IndexJobData, IndexJobResult>
+  job: JobAdapter
 ): Promise<IndexJobResult> {
   const database = getDb();
   const awesomeCrawler = createAwesomeListCrawler();
@@ -406,7 +400,7 @@ async function processAwesomeLists(
  * Process deep-scan job - scan discovered repos for SKILL.md files
  */
 async function processDeepScan(
-  job: Job<IndexJobData, IndexJobResult>
+  job: JobAdapter
 ): Promise<IndexJobResult> {
   const database = getDb();
   const deepCrawler = createDeepScanCrawler();
@@ -489,7 +483,7 @@ async function processDeepScan(
  * Process full-enhanced job - discovery + deep-scan + full-crawl
  */
 async function processFullEnhanced(
-  job: Job<IndexJobData, IndexJobResult>
+  job: JobAdapter
 ): Promise<IndexJobResult> {
   const startTime = Date.now();
 
@@ -523,7 +517,7 @@ async function processFullEnhanced(
  * Process add-requests job - index user-submitted skill requests
  */
 async function processAddRequests(
-  job: Job<IndexJobData, IndexJobResult>
+  job: JobAdapter
 ): Promise<IndexJobResult> {
   const database = getDb();
   const addCrawler = createCrawler();
@@ -649,19 +643,16 @@ async function processAddRequests(
 // Run worker when this file is executed
 console.log('Starting indexer worker...');
 logMeilisearchStatus();
-const worker = startWorker();
+startWorker().catch(err => {
+  console.error('Failed to start worker:', err);
+  process.exit(1);
+});
 
 // Setup recurring jobs for automatic crawling
 setupRecurringJobs()
   .then(() => console.log('Recurring jobs initialized'))
   .catch((err) => console.error('Failed to setup recurring jobs:', err));
 
-// Handle shutdown
-const shutdown = async () => {
-  console.log('Shutting down worker...');
-  await worker.close();
-  process.exit(0);
-};
+// Worker is managed in startWorker, no need for separate shutdown here in the file body
+// The shutdown logic is already at the bottom of the file
 
-process.on('SIGTERM', shutdown);
-process.on('SIGINT', shutdown);

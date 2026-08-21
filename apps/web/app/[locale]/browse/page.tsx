@@ -76,7 +76,7 @@ async function getSkills(params: {
           sortBy: sortMap[effectiveSort] || defaultSort,
           sortOrder: 'desc' as const,
           limit,
-          offset,
+          offset, // Keeping offset for UI compatibility in Server Components
         };
 
         const [skills, total] = await Promise.all([

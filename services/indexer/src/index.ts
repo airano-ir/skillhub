@@ -15,8 +15,6 @@ export type { AnalysisResult, QualityScore, QualityFactor, AnalysisMeta } from '
 
 // Queue
 export {
-  getQueue,
-  getQueueEvents,
   scheduleFullCrawl,
   scheduleIncrementalCrawl,
   scheduleSkillIndex,

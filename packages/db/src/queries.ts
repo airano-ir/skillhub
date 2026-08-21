@@ -252,45 +252,9 @@ export const skillQueries = {
     }
 
     if (query) {
-      const words = query.trim().split(/\s+/).filter(w => w.length > 0);
-      if (words.length > 1) {
-        const hyphenated = words.join('-');
-        const wordConditions = words.map(word =>
-          sql`(${skills.name} ILIKE ${`%${word}%`} OR ${skills.description} ILIKE ${`%${word}%`} OR ${skills.githubOwner} ILIKE ${`%${word}%`} OR ${skills.githubRepo} ILIKE ${`%${word}%`})`
-        );
-        conditions.push(
-          sql`(
-            (${sql.join(wordConditions, sql` AND `)})
-            OR ${skills.name} ILIKE ${`%${hyphenated}%`}
-            OR ${skills.description} ILIKE ${`%${hyphenated}%`}
-            OR ${skills.githubOwner} ILIKE ${`%${hyphenated}%`}
-            OR ${skills.githubRepo} ILIKE ${`%${hyphenated}%`}
-          )`
-        );
-      } else if (query.includes('-')) {
-        // Single hyphenated term: also search each part independently
-        // e.g. "pdf-converter" -> search "pdf-converter" OR ("pdf" AND "converter")
-        const parts = query.split('-').filter(w => w.length > 0);
-        if (parts.length > 1) {
-          const partConditions = parts.map(part =>
-            sql`(${skills.name} ILIKE ${`%${part}%`} OR ${skills.description} ILIKE ${`%${part}%`} OR ${skills.githubOwner} ILIKE ${`%${part}%`} OR ${skills.githubRepo} ILIKE ${`%${part}%`})`
-          );
-          conditions.push(
-            sql`(
-              (${skills.name} ILIKE ${`%${query}%`} OR ${skills.description} ILIKE ${`%${query}%`} OR ${skills.githubOwner} ILIKE ${`%${query}%`} OR ${skills.githubRepo} ILIKE ${`%${query}%`})
-              OR (${sql.join(partConditions, sql` AND `)})
-            )`
-          );
-        } else {
-          conditions.push(
-            sql`(${skills.name} ILIKE ${`%${query}%`} OR ${skills.description} ILIKE ${`%${query}%`} OR ${skills.githubOwner} ILIKE ${`%${query}%`} OR ${skills.githubRepo} ILIKE ${`%${query}%`})`
-          );
-        }
-      } else {
-        conditions.push(
-          sql`(${skills.name} ILIKE ${`%${query}%`} OR ${skills.description} ILIKE ${`%${query}%`} OR ${skills.githubOwner} ILIKE ${`%${query}%`} OR ${skills.githubRepo} ILIKE ${`%${query}%`})`
-        );
-      }
+      conditions.push(
+        sql`(${skills.name} ILIKE ${`%${query}%`} OR ${skills.description} ILIKE ${`%${query}%`} OR ${skills.githubOwner} ILIKE ${`%${query}%`} OR ${skills.githubRepo} ILIKE ${`%${query}%`})`
+      );
     }
 
     if (minStars > 0) {
