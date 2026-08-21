@@ -194,6 +194,39 @@ describe('/api/skills/add-request', () => {
       expect(discoveredRepoQueries.unblockRepo).toHaveBeenCalledWith(expect.anything(), 'rawveg/skillsforge-marketplace');
     });
 
+    it('should preserve a root-level SKILL.md path for indexing', async () => {
+      mockAuth.mockResolvedValue({ user: { githubId: 'gh-12345', username: 'newuser' } });
+      const mockUser = createMockUser();
+      vi.mocked(userQueries.getByGithubId).mockResolvedValue(mockUser as any);
+      vi.mocked(discoveredRepoQueries.getById).mockResolvedValue(null as any);
+      vi.mocked(addRequestQueries.hasPendingRequest).mockResolvedValue(false as any);
+      vi.mocked(addRequestQueries.create).mockResolvedValue('req-root' as any);
+      vi.mocked(addRequestQueries.updateStatus).mockResolvedValue(undefined);
+      vi.mocked(discoveredRepoQueries.upsert).mockResolvedValue(undefined as any);
+
+      vi.stubGlobal('fetch', vi.fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ default_branch: 'main', private: false }),
+        } as any)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            tree: [{ path: 'SKILL.md', type: 'blob' }],
+            truncated: false,
+          }),
+        } as any)
+      );
+
+      const response = await POST(createRequest({ repositoryUrl: 'https://github.com/someowner/root-skill' }));
+
+      expect(response.status).toBe(200);
+      expect(addRequestQueries.create).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ skillPath: '.' })
+      );
+    });
+
     it('should proceed normally when repo is not blocked (Case C)', async () => {
       mockAuth.mockResolvedValue({ user: { githubId: 'gh-12345', username: 'newuser' } });
       const mockUser = createMockUser();

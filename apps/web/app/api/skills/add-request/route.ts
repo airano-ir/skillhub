@@ -419,8 +419,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Create the add request with found skill paths
+    // Preserve a root-level SKILL.md path: joining [''] would otherwise
+    // produce an empty value, which the indexer treats as "no path".
     const skillPathsJson = validation.skillPaths.length > 0
-      ? validation.skillPaths.join(',')
+      ? validation.skillPaths.map((path) => path || '.').join(',')
       : undefined;
 
     // Sanitize user-provided reason
