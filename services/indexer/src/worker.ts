@@ -1,7 +1,7 @@
 import type { Job } from 'bullmq';
 import { Worker } from 'bullmq';
 import pLimit from 'p-limit';
-import { createDb, type Database, discoveredRepoQueries, awesomeListQueries, addRequestQueries, skillQueries, runPostCrawlCuration, sql } from '@skillhub/db';
+import { createDb, type Database, discoveredRepoQueries, awesomeListQueries, addRequestQueries, skillQueries, runPostCrawlCuration } from '@skillhub/db';
 import { GitHubCrawler, createCrawler } from './crawler.js';
 import type { IndexJobData, IndexJobResult } from './queue.js';
 import { setupRecurringJobs } from './queue.js';
@@ -548,7 +548,8 @@ async function processAddRequests(
   for (const request of pendingRequests) {
     console.log(`Processing request ${request.id.slice(0, 8)}...`);
 
-    // Skip if no skill paths found
+    // Skip requests that did not discover a skill. A root-level skill is
+    // stored as `.` and must not be treated as an empty/missing path.
     if (!request.hasSkillMd || !request.skillPath) {
       await addRequestQueries.updateStatus(database, request.id, {
         status: 'approved',
@@ -573,7 +574,11 @@ async function processAddRequests(
       const branch = repoMeta.defaultBranch;
 
       // Parse skill paths (comma-separated)
-      const skillPaths = request.skillPath.split(',').map((p: string) => p.trim());
+      const skillPaths = request.skillPath
+        .split(',')
+        .map((p: string) => p.trim())
+        .filter(Boolean)
+        .map((p: string) => p === '.' ? '' : p);
       const indexedSkillIds: string[] = [];
       const existingSkillIds: string[] = [];
 

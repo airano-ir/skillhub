@@ -451,63 +451,6 @@ export class GitHubCrawler {
   }
 
   /**
-   * Fetch a GitHub user's public email address
-   * First tries Profile API, then falls back to latest commit email
-   */
-  async fetchOwnerEmail(username: string): Promise<{ email: string | null; source: string | null }> {
-    try {
-      // Step 1: GitHub Profile API
-      const { octokit, token } = await this.getOctokit();
-      const userResponse = await octokit.users.getByUsername({ username });
-      this.octokitPool.updateStats(token, userResponse.headers);
-
-      if (userResponse.data.email) {
-        return { email: userResponse.data.email, source: 'profile' };
-      }
-
-      // Step 2: Fallback — check recent commit emails from their repos
-      try {
-        const reposResponse = await octokit.repos.listForUser({
-          username,
-          sort: 'pushed',
-          per_page: 1,
-        });
-        this.octokitPool.updateStats(token, reposResponse.headers);
-
-        if (reposResponse.data.length > 0) {
-          const repo = reposResponse.data[0];
-          const commitsResponse = await octokit.repos.listCommits({
-            owner: username,
-            repo: repo.name,
-            per_page: 5,
-            author: username,
-          });
-          this.octokitPool.updateStats(token, commitsResponse.headers);
-
-          for (const commit of commitsResponse.data) {
-            const email = commit.commit.author?.email;
-            if (
-              email &&
-              !email.includes('noreply') &&
-              !email.includes('users.noreply.github.com') &&
-              email.includes('@')
-            ) {
-              return { email, source: 'commit' };
-            }
-          }
-        }
-      } catch {
-        // Fallback failed — not critical
-      }
-
-      return { email: null, source: null };
-    } catch (error) {
-      console.warn(`[Crawler] Could not fetch email for ${username}:`, error instanceof Error ? error.message : error);
-      return { email: null, source: null };
-    }
-  }
-
-  /**
    * Fetch a single file's content
    */
   private async fetchFileContent(

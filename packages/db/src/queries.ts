@@ -2262,13 +2262,16 @@ export const addRequestQueries = {
   },
 
   /**
-   * Get all pending add requests
+   * Get add requests that still need indexing.
+   *
+   * Requests submitted through the web flow are auto-approved when SKILL.md
+   * is found, so the indexer must process both pending and approved requests.
    */
   getAllPending: async (db: DB) => {
     return db
       .select()
       .from(addRequests)
-      .where(eq(addRequests.status, 'pending'))
+      .where(inArray(addRequests.status, ['pending', 'approved']))
       .orderBy(desc(addRequests.createdAt));
   },
 
